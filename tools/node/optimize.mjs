@@ -23,7 +23,14 @@ for (const [src, dst, size] of jobs) {
       m.setNormalTexture(null).setOcclusionTexture(null).setEmissiveTexture(null).setMetallicRoughnessTexture(null);
       m.setMetallicFactor(0).setRoughnessFactor(0.75);
     }
-    for (const a of root.listAnimations().slice(1)) a.dispose();
+    // морф-цели (лицо, ткань) в примерочной не играют, а весят до 20 МБ на предмет
+    for (const mesh of root.listMeshes()) {
+      for (const prim of mesh.listPrimitives()) for (const t of prim.listTargets()) prim.removeTarget(t);
+      mesh.setWeights([]);
+    }
+    // герою нужна одна стойка, предметам анимации не нужны вовсе — они двигаются костями героя
+    const keep = dst.endsWith('hero.glb') ? 1 : 0;
+    for (const a of root.listAnimations().slice(keep)) a.dispose();
     await doc.transform(
       prune({ keepAttributes: true, keepLeaves: true }),
       dedup(),

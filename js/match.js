@@ -638,7 +638,7 @@ async function share() {
   x.fillText(clip(x, r.name, 700), 430, 230);
   x.font = '500 26px Inter';
   x.fillStyle = '#8b91a5';
-  x.fillText(`${r.hero} · ${r.k}/${r.d}/${r.a} · GPM ${r.gpm} · влияние ${r.score}/100`, 430, 276);
+  x.fillText(`${r.hero} · ${r.k}/${r.d}/${r.a} · GPM ${r.gpm} · руин ${r.share}% · устойчивость ${A.stability}%`, 430, 276);
   x.font = '600 26px Inter';
   r.neg.slice(0, 3).forEach((n, i) => {
     x.fillStyle = '#ff6b4a';
@@ -659,7 +659,7 @@ async function share() {
   x.textAlign = 'right';
   x.fillText(location.host, 1140, 590);
 
-  const text = `Кто заруинил матч ${A.id}? ${r.hero} (${r.name}) — ${r.neg.slice(0, 2).map((n) => n.title.toLowerCase()).join(', ')}. MVP — ${A.mvp.hero}. ${location.href}`;
+  const text = `Кто заруинил матч ${A.id}? ${r.hero} (${r.name}), руин ${r.share}% — ${r.neg.slice(0, 2).map((n) => n.title.toLowerCase()).join(', ')}. MVP — ${A.mvp.hero}. ${location.href}`;
   const modal = document.createElement('div');
   modal.className = 'modal';
   modal.innerHTML = `<div><h3 style="font:700 16px var(--display);margin:0 0 12px">Карточка матча</h3><div id="cvh"></div>

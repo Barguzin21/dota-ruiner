@@ -67,9 +67,32 @@ function home() {
     submit($('#q').value);
   };
   $('[data-ex]').onclick = (e) => go(`#/match/${e.target.dataset.ex}`);
+  app.insertAdjacentHTML('beforeend', `<div class="panel reveal sid"><h3>Конвертер Steam ID <small>ссылка, SteamID64, код для друзей, [U:1:N] или STEAM_0</small></h3>
+    <input id="sidq" placeholder="Например 76561198452324571 или steamcommunity.com/profiles/…" autocomplete="off"><div id="sidout" class="sidout"></div></div>`);
+  $('#sidq').oninput = (e) => ($('#sidout').innerHTML = steamIds(e.target.value));
   fx(app);
   import('./viewer3d.js').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
 }
+
+// Все форматы Steam ID из одного ввода.
+function steamIds(v) {
+  v = v.trim();
+  if (!v) return '';
+  let acc = null;
+  let m;
+  if ((m = v.match(/\[U:1:(\d+)\]/i))) acc = BigInt(m[1]);
+  else if ((m = v.match(/STEAM_[0-5]:([01]):(\d+)/i))) acc = BigInt(m[2]) * 2n + BigInt(m[1]);
+  else if ((m = v.match(/(\d{5,20})/))) acc = BigInt(m[1]) >= STEAM64 ? BigInt(m[1]) - STEAM64 : BigInt(m[1]);
+  if (acc == null || acc > 4294967295n) return '<p class="psub">Не распознал. Короткие ссылки /id/ник без API Steam не раскрыть.</p>';
+  const rows = [['Код для друзей (Dota)', acc], ['SteamID64', acc + STEAM64], ['SteamID3', `[U:1:${acc}]`], ['SteamID', `STEAM_0:${acc % 2n}:${acc / 2n}`]];
+  return `<div class="sidgrid">${rows.map(([k, x]) => `<button class="tile" data-copy="${x}"><div class="lbl">${k}</div><div class="num">${x}</div></button>`).join('')}</div>
+    <div class="actions"><a class="btn sm" href="#/player/${acc}">Матчи игрока</a><a class="btn ghost sm" href="#/coach/${acc}">Тренер</a>
+    <a class="btn ghost sm" href="https://steamcommunity.com/profiles/${acc + STEAM64}" target="_blank" rel="noopener">Профиль Steam</a></div>`;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-copy]');
+  if (b) navigator.clipboard.writeText(b.dataset.copy).then(() => toast('Скопировано'), () => {});
+});
 
 export function submit(v) {
   const r = parseInput(v);

@@ -122,3 +122,8 @@
 .tmchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
 .tmchips .chip img { width: 26px; height: 19px; border-radius: 3px; }
 @media (max-width: 560px) { .top { padding: 12px 14px; gap: 8px; } .top nav { gap: 4px; } .top nav a { padding: 6px 8px; font-size: 12px; } .themebtn { padding: 5px 8px; font-size: 11px; } .logo { font-size: 13px; } }
+.sid { margin-top: 24px; }
+.sid input { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; outline: none; }
+.sidgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 12px; }
+.sidgrid .tile { text-align: left; cursor: copy; color: inherit; font: inherit; }
+.sidgrid .tile .num { font-size: 15px; word-break: break-all; }
