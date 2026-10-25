@@ -384,15 +384,8 @@ const MX = (x) => x - 64;
 const MY = (y) => 192 - y;
 
 function mapSvg() {
-  return `<rect width="128" height="128" fill="#13241a"/>
-    <path d="M0,38 C30,46 48,56 64,64 C80,72 98,84 128,92 L128,104 C96,96 78,82 62,74 C46,66 28,56 0,50Z" fill="#1d4a66" opacity=".75"/>
-    <g fill="none" stroke="#3b3a2a" stroke-width="3.4" stroke-linecap="round" opacity=".9">
-      <path d="M13,110 L13,14 L114,14"/><path d="M18,110 L110,18"/><path d="M18,115 L115,115 L115,18"/>
-    </g>
-    <path d="M0,128 L0,96 Q20,92 32,108 Q36,120 32,128Z" fill="#2c5a2c" opacity=".9"/>
-    <path d="M128,0 L96,0 Q92,20 108,30 Q120,34 128,32Z" fill="#5a2c22" opacity=".9"/>
-    <circle cx="14" cy="114" r="5" fill="#5fd36f" opacity=".9"/><circle cx="114" cy="14" r="5" fill="#ff6a3d" opacity=".9"/>
-    <circle cx="80" cy="76" r="3.2" fill="#3a2d4d" stroke="#8a6fc9" stroke-width=".6"/><text x="80" y="77.3" font-size="3" text-anchor="middle" fill="#cbb8ff">R</text>`;
+  // настоящая мини-карта из файлов игры, слегка притемнённая, чтобы метки читались
+  return `<image href="img/minimap.webp" width="128" height="128" preserveAspectRatio="none"/><rect width="128" height="128" fill="#05070b" opacity=".28"/>`;
 }
 
 function map(el) {
