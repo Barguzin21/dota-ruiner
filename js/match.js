@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610260213';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202610260213';
-import { coachSection, me, itemTimings } from './coach.js?v=202610260213';
-import { icon as ic } from './icons.js?v=202610260213';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610260220';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202610260220';
+import { coachSection, me, itemTimings } from './coach.js?v=202610260220';
+import { icon as ic } from './icons.js?v=202610260220';
 
 let A; // текущий разбор
 let C; // справочники
@@ -114,14 +114,10 @@ function draw(app) {
         </div>
       </div>
       <div class="vside">
-        <div class="vcard mvp tilt reveal">
-          <div class="vstage" data-hero3d="${mvp.heroKey}" data-tone="gold"><img class="portrait full" src="${heroFull(mvp.heroKey)}" onerror="this.onerror=null;this.src='${portrait(mvp, 1)}';this.classList.remove('full')" alt=""></div>
-          <div class="vbody"><div class="vlabel">MVP</div><div class="vname">${esc(mvp.name)}</div>
-          <div class="vhero">${esc(mvp.hero)} · ${mvp.k}/${mvp.d}/${mvp.a} · ${mvp.gpm} золота/мин</div>
-          <div class="meter"><span>Влияние на игру</span>${scoreBar(mvp.score)}<b>${mvp.score}</b></div>
-          <div class="meter"><span>Вклад в победу</span>${scoreBar(mvp.share * 2.5)}<b>${mvp.share}%</b></div></div>
+        <div class="mvps">
+          ${mvpCard(A.bestLoser, 'проигравших', 'blue', 'Доля в поражении', A.bestLoser.share)}
+          ${mvpCard(mvp, 'победителей', 'gold', 'Вклад в победу', mvp.share)}
         </div>
-        ${mini('Лучший у проигравших', A.bestLoser, `руин ${A.bestLoser.share}% · тащил как мог`)}
         ${mini('Почти заруинил', A.nearRuiner, `руин ${A.nearRuiner.share}% · влияние ${A.nearRuiner.score}`)}
         ${mini('Пассажир победы', A.passenger, `вклад ${A.passenger.share}% · победили без него`)}
       </div>
@@ -203,13 +199,24 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202610260213').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610260220').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
   };
   $$('.viewsw button', root).forEach((b) => (b.onclick = () => { store.set('view3', b.dataset.view); if (!paint()) start(); }));
   if (!paint()) start();
+}
+
+// Карточка MVP: победителей (золото) и проигравших (синяя). Две рядом, чтобы было видно лучшего с каждой стороны.
+function mvpCard(p, side, tone, shareLabel, share) {
+  return `<div class="vcard mvp ${tone === 'blue' ? 'lose' : ''} tilt reveal">
+    <div class="vstage" data-hero3d="${p.heroKey}" data-tone="${tone}"><img class="portrait full" src="${heroFull(p.heroKey)}" onerror="this.onerror=null;this.src='${portrait(p, 1)}';this.classList.remove('full')" alt=""></div>
+    <div class="vbody"><div class="vlabel">MVP <small>${side}</small></div><div class="vname">${esc(p.name)}</div>
+    <div class="vhero">${esc(p.hero)} · ${p.k}/${p.d}/${p.a} · ${p.gpm} з/мин</div>
+    <div class="meter"><span>Влияние</span>${scoreBar(p.score)}<b>${p.score}</b></div>
+    <div class="meter"><span>${shareLabel}</span>${scoreBar(share * 2.5)}<b>${share}%</b></div></div>
+  </div>`;
 }
 
 function mini(title, p, sub) {
@@ -807,13 +814,15 @@ async function drawCard() {
   for (let i = 0; i < S; i += 54) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, S); x.moveTo(0, i); x.lineTo(S, i); x.stroke(); }
 
   if (hero) {
-    const h = 900;
-    const w = hero.width * (h / hero.height);
+    // герой вписан в правую зону 370x600 под заголовком и прижат к низу: слева текст, на него заходить нельзя
+    const k = Math.min(370 / hero.width, 600 / hero.height);
+    const w = hero.width * k;
+    const h = hero.height * k;
     x.save();
     if (sport) x.filter = 'grayscale(1) contrast(1.1)';
     x.shadowColor = 'rgba(0,0,0,.7)';
     x.shadowBlur = 40;
-    x.drawImage(hero, S - w + 40, S - h - 40, w, h);
+    x.drawImage(hero, S - 40 - 370 + (370 - w) / 2, S - 56 - h, w, h);
     x.restore();
     // затемнение слева, чтобы текст читался поверх героя
     const fade = x.createLinearGradient(0, 0, 720, 0);

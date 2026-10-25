@@ -277,7 +277,7 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
   .tabbar a.on svg { color: var(--red); }
   #toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
   /* MVP: герой слева, текст справа */
-  .vcard.mvp { grid-template-columns: 100px 1fr !important; }
+  .vcard.mvp:not(.mvps .vcard) { grid-template-columns: 100px 1fr !important; }
   .vcard.mvp .vstage { min-height: 140px; aspect-ratio: auto; }
   .vcard.mvp .vlabel { font-size: 26px; }
   .vcard.mvp .vname { font-size: 18px; }
@@ -441,3 +441,18 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 /* вердикт, причины, кнопки и голосование помещаются в первый экран */
 .verdict ~ .actions { margin: 10px 0 0; }
 .verdict ~ .vote { margin-top: 8px; padding: 7px 14px; }
+/* две карточки MVP рядом: проигравших (синяя) и победителей (золотая) */
+.mvps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mvps .vcard.mvp { grid-template-columns: 1fr; padding: 12px; gap: 8px; align-content: start; }
+.mvps .vcard.mvp .vstage { min-height: 0; aspect-ratio: 5 / 4; }
+.mvps .vcard.mvp .vlabel { font-size: 22px; white-space: nowrap; }
+.mvps .vcard.mvp .vname { font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mvps .vcard.mvp .vhero { font-size: 12px; }
+.mvps .meter { grid-template-columns: 1fr; gap: 3px; font-size: 11.5px; }
+.mvps .meter b { justify-self: end; margin-top: -18px; }
+.vcard.mvp.lose { background: linear-gradient(135deg, rgba(61, 139, 255, .16), rgba(18, 20, 28, .9) 60%), var(--panel); border-color: rgba(61, 139, 255, .4); }
+.vcard.mvp.lose .vlabel { color: #8fb8ff; text-shadow: 0 0 40px rgba(61, 139, 255, .35); }
+.vcard.mvp.lose .vstage { background: radial-gradient(circle at 50% 80%, rgba(61, 139, 255, .3), transparent 55%), #0c0d12; }
+.sport .vcard.mvp.lose { border-left-color: #3d8bff !important; }
+.sport .vcard.mvp.lose .vlabel { color: #8fb8ff; }
+.mvps .vcard.mvp .vlabel small { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; opacity: .8; text-shadow: none; }
