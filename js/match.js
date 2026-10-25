@@ -128,13 +128,14 @@ function draw(app) {
     </section>
     <div class="reasons reveal">${r.neg.slice(0, 4).map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('') || '<div class="reason"><b>Явных провалов нет</b><span>Просто хуже остальных по сумме метрик.</span></div>'}</div>
     <div class="actions">
-      <button class="btn ghost" data-act="defend">${ic('scale')} Оправдать руинера</button>
-      <button class="btn ghost" data-act="why">${ic('search')} Почему именно он?</button>
-      <button class="btn" data-act="ai">${ic('sparkles')} Разбор от ИИ</button>
+      <button class="btn ghost" data-act="defend" title="Оправдать руинера">${ic('scale')} Оправдать</button>
+      <button class="btn ghost" data-act="why" title="Почему именно он?">${ic('search')} Почему он?</button>
+      <button class="btn" data-act="ai" title="Разбор от ИИ">${ic('sparkles')} Разбор ИИ</button>
       <button class="btn gold" data-act="share">${ic('share')} Поделиться</button>
-      <button class="btn ghost" data-act="copy">${ic('copy')} Скопировать итог</button>
-      <button class="btn ghost" data-act="card">${ic('download')} Скачать карточку</button>
-      <a class="btn ghost" href="#/sets/${r.heroKey}">${ic('shirt')} Сеты на ${esc(r.hero)}</a>
+      <button class="btn ghost" data-act="copy" title="Скопировать итог текстом">${ic('copy')} Итог</button>
+      <button class="btn ghost" data-act="card" title="Скачать карточку руинера">${ic('download')} Карточка</button>
+      <button class="btn ghost" data-act="coach">${ic('cap')} Обучение</button>
+      <a class="btn ghost act-right" href="#/sets/${r.heroKey}" title="Примерочная: сеты на ${esc(r.hero)}">${ic('shirt')} Сеты ${esc(r.hero)}</a>
     </div>
     <div id="extra"></div>
     <nav class="tabs"><div class="tabs-in">${TABS.map(([k, t], i) => `<button data-tab="${k}" class="${i ? '' : 'on'}">${t}</button>`).join('')}<i class="tab-ind"></i></div></nav>
@@ -151,7 +152,9 @@ function draw(app) {
     const b = $(`[data-tab="${k}"]`, app);
     $$('[data-tab]', app).forEach((x) => x.classList.toggle('on', x === b));
     moveInd(b);
-    b?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    // только горизонтальная прокрутка полоски: scrollIntoView двигал всю страницу к спрятанному меню
+    const bar = $('.tabs', app);
+    if (b && bar) bar.scrollLeft = b.offsetLeft - bar.clientWidth / 2 + b.offsetWidth / 2;
   };
   // Навигация = прокрутка к разделу; при прокрутке подсвечиваем текущий.
   $$('[data-tab]', app).forEach((b) => (b.onclick = () => $(`#sec-${b.dataset.tab}`).scrollIntoView({ behavior: 'smooth' })));
@@ -224,6 +227,9 @@ function action(act) {
       <div class="sub">Из чего сложился счёт ${esc(r.hero)}</div>${breakdown(r)}
       <div class="sub">Все сигналы против ${esc(r.hero)}</div>
       <div class="reasons">${r.neg.map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('')}</div></div>`;
+  } else if (act === 'coach') {
+    $('#sec-coach').scrollIntoView({ behavior: 'smooth' });
+    return;
   } else if (act === 'ai') {
     $('#sec-ai').scrollIntoView({ behavior: 'smooth' });
     return;
@@ -343,7 +349,7 @@ async function accounts(el) {
     ${rows.map((x) => `<div class="prow acc ${x.smurf ? 'ruiner' : ''}"><img class="h" src="${portrait(x.p)}" alt="">
       <div style="min-width:0"><div class="pname">${esc(x.p.name)}</div><div class="psub">${esc(x.p.hero)} · ${x.prof?.rank_tier ? rankName(x.prof.rank_tier) : 'ранг скрыт'}</div></div>
       <div class="num">${x.hidden ? 'аноним' : x.games != null ? fmt(x.games) : '<span class="psub">история скрыта</span>'}</div><div class="num hide-s">${x.wr != null ? x.wr + '%' : '—'}</div>
-      <div class="num hide-s">${x.onHero ?? '—'}</div><div>${x.smurf ? `<span class="chip neg">${x.smurf}</span>` : x.onHero != null && x.onHero < 5 ? '<span class="chip">впервые на герое</span>' : ''}</div></div>`).join('')}
+      <div class="num hide-s">${x.onHero ?? '—'}</div><div class="accmark">${x.smurf ? `<a class="chip neg" href="#/smurf/${x.p.accountId}">${x.smurf} →</a>` : x.onHero != null && x.onHero < 5 ? '<span class="chip">впервые на герое</span>' : ''}${x.p.accountId ? `<a class="chip" href="#/smurf/${x.p.accountId}">${ic('usersearch')} Проверить</a>` : ''}</div></div>`).join('')}
     <p class="psub" style="margin:12px 0 0">«Похож на смурфа» — меньше 400 игр на аккаунте и показатели лучше 75% игроков на этом герое. Скрытый профиль нельзя проверить.</p></div>`;
 }
 

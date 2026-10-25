@@ -3,6 +3,7 @@ import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } 
 import { renderMatch } from './match.js';
 import { renderSets } from './wardrobe.js';
 import { coachPage, me, setMe } from './coach.js';
+import { smurfPage } from './smurf.js';
 import { icon as ic } from './icons.js';
 import { rankName, analyze } from './analyze.js';
 
@@ -95,6 +96,25 @@ document.addEventListener('click', (e) => {
   if (b) navigator.clipboard.writeText(b.dataset.copy).then(() => toast('Скопировано'), () => {});
 });
 
+// Вход в обучение: если «я» уже известен — сразу тренер, иначе просим профиль.
+function coachLanding() {
+  if (me()) { location.hash = `#/coach/${me()}`; return; }
+  app.innerHTML = `<div class="coachland reveal">
+    <div class="lbl">Обучение</div><h1 class="hero-title" style="font-size:clamp(34px,5vw,60px)">Найди свои <em>ошибки</em></h1>
+    <p class="lead">Вставь ссылку на свой профиль Steam, Dotabuff или OpenDota, или код для друзей. Тренер разберёт последние 20 игр: что у тебя повторяется, какие метрики проседают и что тренировать в первую очередь.</p>
+    <form class="search" id="cf"><input id="cq" placeholder="Профиль или код для друзей" autocomplete="off"><button class="btn big red">${ic('cap')} Разобрать мои игры</button></form>
+    <div class="hint">Ещё можно открыть любой разбор матча и в разделе «Обучение» выбрать себя.</div></div>`;
+  fx(app);
+  $('#cf').onsubmit = (e) => {
+    e.preventDefault();
+    const r = parseInput($('#cq').value);
+    if (!r.player && !r.ambiguous) return toast('Нужна ссылка на профиль или код для друзей');
+    const id = r.player || r.ambiguous;
+    setMe(id);
+    location.hash = `#/coach/${id}`;
+  };
+}
+
 export function submit(v) {
   const r = parseInput(v);
   if (r.error) return toast(r.error);
@@ -114,7 +134,7 @@ async function player(id) {
       <div class="phead"><img src="${esc(p.avatarfull)}" alt=""><div>
         <h1>${esc(p.personaname)}</h1>
         <div class="psub">${rankName(prof.rank_tier)} · <a href="https://www.opendota.com/players/${id}" target="_blank" rel="noopener">OpenDota</a></div>
-      </div><div class="coach-acts" style="margin-left:auto"><a class="btn" href="#/coach/${id}">${ic('cap')} Тренер по 20 играм</a>${me() === +id ? '<span class="chip pos">это ты</span>' : `<button class="btn ghost" id="itsme">Это я</button>`}</div></div>
+      </div><div class="coach-acts" style="margin-left:auto"><a class="btn" href="#/coach/${id}">${ic('cap')} Тренер по 20 играм</a><a class="btn ghost" href="#/smurf/${id}">${ic('usersearch')} Проверка на смурфа</a>${me() === +id ? '<span class="chip pos">это ты</span>' : `<button class="btn ghost" id="itsme">Это я</button>`}</div></div>
       <div class="panel reveal"><h3>Руин-статистика <small>последние ${Math.min(10, list.length)} матчей</small></h3><div class="ruinstats" id="rs"><div class="loading" style="padding:10px"><div class="spinner"></div>Разбираем матчи…</div></div></div>
       <div class="panel reveal"><h3>Последние матчи <small>нажми, чтобы узнать, кто заруинил</small></h3>
       <div class="mlist">${list.map((m) => {
@@ -168,11 +188,13 @@ async function ruinStats(account, list, c) {
 
 async function route() {
   const [, page, arg] = location.hash.split(/[/?]/);
-  $$('.top nav a').forEach((a) => a.classList.toggle('on', a.dataset.nav === (page === 'sets' ? 'sets' : 'match')));
+  $$('.top nav a').forEach((a) => a.classList.toggle('on', a.dataset.nav === (page === 'sets' ? 'sets' : page === 'coach' ? 'coach' : 'match')));
   window.scrollTo(0, 0);
   if (page === 'match' && arg) return renderMatch(app, arg);
   if (page === 'player' && arg) return player(arg);
   if (page === 'coach' && arg) return coachPage(app, arg);
+  if (page === 'coach') return coachLanding();
+  if (page === 'smurf' && arg) return smurfPage(app, arg);
   if (page === 'sets') return renderSets(app, arg, new URLSearchParams(location.hash.split('?')[1] || ''));
   return home();
 }

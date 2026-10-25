@@ -75,3 +75,5 @@
 .sport .viewsw { border-radius: 3px; }
 .sport .viewsw button { border-radius: 2px; font-family: var(--display); }
 .sport .vcard:not(.mvp) .vstage .portrait.full { filter: grayscale(1) contrast(1.1); }
+.sport .nom .ic { border-radius: 3px; }
+.sport .smurf-verdict h2 { font-family: var(--display); text-transform: uppercase; }
