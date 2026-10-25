@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx } from './util.js';
-import { analyze, defend, mmss, rankName } from './analyze.js';
-import { coachSection, me, itemTimings } from './coach.js';
-import { icon as ic } from './icons.js';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610252126';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202610252126';
+import { coachSection, me, itemTimings } from './coach.js?v=202610252126';
+import { icon as ic } from './icons.js?v=202610252126';
 
 let A; // текущий разбор
 let C; // справочники
@@ -185,7 +185,7 @@ async function mount3d(root) {
   const viewers = [];
   // Прячем/показываем холст и картинку прямо из скрипта: старый CSS из кэша не должен давать двух героев сразу.
   const paint = () => {
-    const flat = store.get('view', '3d') === '2d';
+    const flat = store.get('view3', '3d') === '2d';
     verdict.classList.toggle('flat', flat);
     $$('.viewsw button', root).forEach((b) => b.classList.toggle('on', b.dataset.view === (flat ? '2d' : '3d')));
     for (const st of $$('[data-hero3d]', root)) {
@@ -201,12 +201,12 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610252126').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
   };
-  $$('.viewsw button', root).forEach((b) => (b.onclick = () => { store.set('view', b.dataset.view); if (!paint()) start(); }));
+  $$('.viewsw button', root).forEach((b) => (b.onclick = () => { store.set('view3', b.dataset.view); if (!paint()) start(); }));
   if (!paint()) start();
 }
 

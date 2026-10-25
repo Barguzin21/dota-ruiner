@@ -1,11 +1,11 @@
 // Роутер, главная, страница игрока.
-import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js';
-import { renderMatch } from './match.js';
-import { renderSets } from './wardrobe.js';
-import { coachPage, me, setMe } from './coach.js';
-import { smurfPage } from './smurf.js';
-import { icon as ic } from './icons.js';
-import { rankName, analyze } from './analyze.js';
+import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610252126';
+import { renderMatch } from './match.js?v=202610252126';
+import { renderSets } from './wardrobe.js?v=202610252126';
+import { coachPage, me, setMe } from './coach.js?v=202610252126';
+import { smurfPage } from './smurf.js?v=202610252126';
+import { icon as ic } from './icons.js?v=202610252126';
+import { rankName, analyze } from './analyze.js?v=202610252126';
 
 const app = $('#app');
 const STEAM64 = 76561197960265728n;
@@ -73,7 +73,7 @@ function home() {
     <input id="sidq" placeholder="Например 76561198452324571 или steamcommunity.com/profiles/…" autocomplete="off"><div id="sidout" class="sidout"></div></div>`);
   $('#sidq').oninput = (e) => ($('#sidout').innerHTML = steamIds(e.target.value));
   fx(app);
-  import('./viewer3d.js').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
+  import('./viewer3d.js?v=202610252126').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
 }
 
 // Все форматы Steam ID из одного ввода.
