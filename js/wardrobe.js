@@ -1,6 +1,6 @@
 // Примерочная: герои → наборы и предметы по слотам, цены, образы по бюджету (правила + ИИ).
-import { $, $$, esc, rub, consts, heroTall, heroFull, getJSON, toast, askAI, API, store } from './util.js?v=202610260144';
-import { icon as ic } from './icons.js?v=202610260144';
+import { $, $$, esc, rub, consts, heroTall, heroFull, getJSON, toast, askAI, API, store } from './util.js?v=202610260201';
+import { icon as ic } from './icons.js?v=202610260201';
 
 const RAR = { common: ['Обычный', '#b0c3d9'], uncommon: ['Необычный', '#5e98d9'], rare: ['Редкий', '#4b69ff'], mythical: ['Мифический', '#8847ff'],
   legendary: ['Легендарный', '#d32ce6'], immortal: ['Бессмертный', '#e4ae39'], arcana: ['Аркана', '#ade55c'], ancient: ['Древний', '#eb4b4b'], seasonal: ['Сезонный', '#fff34f'] };
@@ -337,7 +337,7 @@ function heroPage(app, C, D, P, params) {
   start3d();
 
   async function start3d() {
-    const v3 = await import('./viewer3d.js?v=202610260144').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610260201').catch(() => null);
     const man = v3 && (await v3.hasModels(D.hero));
     if (!man || !document.body.contains(look)) return;
     v3mod = [v3, man];
