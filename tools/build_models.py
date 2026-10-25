@@ -109,8 +109,9 @@ for f in sorted(os.listdir(os.path.join(ROOT, 'data', 'heroes'))):
     paths = sorted(set(want.values()))
     todo = [p for p in paths if not os.path.exists(os.path.join(raw, p[:-5] + '.glb'))]
     for i in range(0, len(todo), 60):
+        # флаг анимаций нужен ради скелета: без него VRF теряет кости предмета, а вершины лежат в системе этих костей
         vrf(['-f', ','.join(p + '_c' for p in todo[i:i + 60]), '-o', raw, '-d', '--gltf_export_format', 'glb',
-             '--gltf_export_materials', '--threads', '6'])
+             '--gltf_export_materials', '--gltf_export_animations', '--threads', '6'])
     sk = {}
     for i in range(0, len(paths), 60):
         sk.update(skeletons(paths[i:i + 60]))

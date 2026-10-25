@@ -56,11 +56,30 @@ const io = 'IntersectionObserver' in window ? new IntersectionObserver((es) => e
   for (const n of [e.target, ...e.target.querySelectorAll('[data-count]')]) if (n.dataset?.count) countUp(n);
 }), { rootMargin: '0px 0px -40px' }) : null;
 
+// Подстраховка к IntersectionObserver: на некоторых браузерах/вкладках он молчит, и блоки оставались невидимыми.
+const pending = new Set();
+function sweep() {
+  for (const el of pending) {
+    if (!el.isConnected) { pending.delete(el); continue; }
+    const r = el.getBoundingClientRect();
+    if (r.top < innerHeight + 40 && r.bottom > -40) {
+      pending.delete(el);
+      el.classList.add('in');
+      for (const n of [el, ...el.querySelectorAll('[data-count]')]) if (n.dataset?.count && n.textContent === '0') countUp(n);
+    }
+  }
+}
+let sweepT;
+addEventListener('scroll', () => { clearTimeout(sweepT); sweepT = setTimeout(sweep, 80); }, { passive: true });
+
 export function fx(root) {
   if (!root) return;
   const els = [...root.querySelectorAll('.reveal:not(.in), .bar, .ring, .share, .tug')];
   if (root.matches?.('.reveal')) els.push(root);
-  for (const el of els) io && !still ? io.observe(el) : el.classList.add('in');
+  for (const el of els) {
+    if (io && !still) { io.observe(el); pending.add(el); } else el.classList.add('in');
+  }
+  setTimeout(sweep, 400);
   if (still || !io) root.querySelectorAll('[data-count]').forEach((n) => (n.textContent = n.dataset.count));
   for (const el of root.querySelectorAll('.tilt')) tilt(el);
 }

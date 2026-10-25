@@ -486,7 +486,11 @@ function builds(el) {
     const top = Object.entries(counts).map(([id, n]) => [C.itemsById[id], n]).filter(([k]) => k && core(k)).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k]) => k);
     const bought = new Set(p.purchases.map((x) => x.key));
     const hit = top.filter((k) => bought.has(k)).length;
-    const odd = [...bought].filter((k) => core(k) && !top.includes(k) && !Object.keys(counts).some((id) => C.itemsById[id] === k && counts[id] > 50));
+    // «нестандартно» — только то, что на этом герое почти никто не берёт ни в какой фазе игры
+    const all = {};
+    for (const part of ['start_game_items', 'early_game_items', 'mid_game_items', 'late_game_items']) for (const [id, n] of Object.entries(pop[part] || {})) all[C.itemsById[id]] = (all[C.itemsById[id]] || 0) + n;
+    const total = Object.values(all).reduce((a, b) => a + b, 0) || 1;
+    const odd = [...bought].filter((k) => core(k) && (all[k] || 0) / total < 0.004);
     box.innerHTML = `<span class="lbl">Мета (${hit} из ${top.length}):</span>${top.map((k) => `<img class="${bought.has(k) ? 'got' : ''}" src="${itemImg(k)}" title="${esc(C.itemsByKey[k]?.name || k)}" alt="">`).join('')}
       ${odd.length ? `<span class="psub" style="margin-left:8px">нестандартно: ${odd.map((k) => esc(C.itemsByKey[k]?.name || k)).join(', ')}</span>` : ''}`;
   });

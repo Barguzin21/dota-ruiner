@@ -119,11 +119,17 @@ function heroPage(app, C, D, P, params) {
     const on = isSet ? st.set === x.id : st.eq[x.s] === x.id;
     const partsCheaper = isSet && price(x) != null && x.items.every((id) => price(byId[id]) != null) && x.items.reduce((a, id) => a + price(byId[id]), 0) < price(x) * 0.85;
     return `<div class="icard ${on ? 'on' : ''}" data-${isSet ? 'set' : 'item'}="${x.id}">
-      <div class="pic">${x.img ? `<img src="${icon(x)}" alt="" loading="lazy">` : '<div class="noimg">нет картинки</div>'}</div>
+      <div class="pic">${x.img ? `<img src="${icon(x)}" alt="" loading="lazy">` : collage(isSet ? x.items : [])}</div>
       <div class="rar" style="background:${rc}"></div>
       <div class="info"><div class="nm">${esc(x.ru)}</div>
       <div class="meta"><span style="color:${rc}">${rn}${isSet ? '' : ' · ' + slotName(x.s)}</span><span class="price ${p == null ? 'none' : ''}">${p == null ? 'не продаётся' : rub(p)}</span></div>
       ${partsCheaper ? '<div class="psub" style="color:var(--green)">по частям дешевле</div>' : ''}</div></div>`;
+  };
+
+  // У набора нет своей иконки в игре — показываем коллаж из иконок его предметов.
+  const collage = (ids) => {
+    const imgs = ids.map((id) => byId[id]).filter((it) => it?.img).slice(0, 4);
+    return imgs.length ? `<div class="collage n${imgs.length}">${imgs.map((it) => `<img src="${icon(it)}" alt="" loading="lazy">`).join('')}</div>` : '<div class="noimg">нет картинки</div>';
   };
 
   const sorter = (a, b) => ({

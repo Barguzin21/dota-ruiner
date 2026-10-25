@@ -79,7 +79,7 @@ export function createViewer(el, manifest, opt = {}) {
   shadow.rotation.x = -Math.PI / 2;
   scene.add(shadow);
 
-  let hero, skeleton, boneIdx, mixer, quant;
+  let hero, skeleton, boneIdx, mixer;
   const worn = new Map(); // id → mesh[]
   const clock = new THREE.Clock();
   let alive = true;
@@ -111,19 +111,6 @@ export function createViewer(el, manifest, opt = {}) {
       if (o.isMesh) o.frustumCulled = false;
     });
     boneIdx = new Map(skeleton?.bones.map((b, i) => [b.name.toLowerCase(), i]) || []);
-    // gltf-transform квантует тело героя и прячет масштаб/сдвиг в матрицы костей.
-    // Находим его (рамка вершин до и после скиннинга в позе привязки), чтобы перевести предметы в то же пространство.
-    hero.traverse((o) => {
-      if (!o.isSkinnedMesh || quant) return;
-      o.geometry.computeBoundingBox();
-      const q = o.geometry.boundingBox;
-      o.computeBoundingBox();
-      const r = o.boundingBox;
-      const qs = q.getSize(new THREE.Vector3());
-      const rs = r.getSize(new THREE.Vector3());
-      const sc = (rs.x / qs.x + rs.y / qs.y + rs.z / qs.z) / 3;
-      quant = { s: sc, c: r.min.clone().sub(q.min.clone().multiplyScalar(sc)) };
-    });
     if (gltf.animations[0]) {
       mixer = new THREE.AnimationMixer(hero);
       mixer.clipAction(gltf.animations[0]).play();
@@ -146,44 +133,30 @@ export function createViewer(el, manifest, opt = {}) {
     await sync();
   })();
 
+  // Кость героя для кости предмета: то же имя (без учёта регистра), иначе ближайший предок, иначе корень.
+  function heroBone(b) {
+    for (let x = b; x; x = x.parent) {
+      const i = boneIdx.get((x.name || '').toLowerCase());
+      if (i != null) return skeleton.bones[i];
+    }
+    return skeleton.bones[0];
+  }
+
   function attach(id, gltf) {
-    const bones = manifest.items[id] || [];
     const meshes = [];
     gltf.scene.updateMatrixWorld(true);
     gltf.scene.traverse((o) => {
       if (!o.isMesh) return;
-      // meshopt квантует координаты и прячет масштаб в узел — возвращаем float-позиции в пространство модели
-      const geo = o.geometry.clone();
-      const p = geo.attributes.position;
-      const f = new Float32Array(p.count * 3);
-      for (let i = 0; i < p.count; i++) {
-        f[i * 3] = p.getX(i);
-        f[i * 3 + 1] = p.getY(i);
-        f[i * 3 + 2] = p.getZ(i);
-      }
-      geo.setAttribute('position', new THREE.BufferAttribute(f, 3));
-      geo.applyMatrix4(o.matrixWorld);
-      if (quant && Math.abs(quant.s - 1) > 1e-3) {
-        geo.translate(-quant.c.x, -quant.c.y, -quant.c.z);
-        geo.scale(1 / quant.s, 1 / quant.s, 1 / quant.s);
-      }
       let mesh;
-      const si = geo.attributes.skinIndex;
-      if (skeleton && si && bones.length) {
-        // индексы костей предмета → индексы костей героя по имени
-        const map = bones.map((n) => boneIdx.get(n.toLowerCase()) ?? 0);
-        const idx = new Uint16Array(si.count * 4);
-        for (let i = 0; i < si.count; i++) {
-          idx[i * 4] = map[si.getX(i)] ?? 0;
-          idx[i * 4 + 1] = map[si.getY(i)] ?? 0;
-          idx[i * 4 + 2] = map[si.getZ(i)] ?? 0;
-          idx[i * 4 + 3] = map[si.getW(i)] ?? 0;
-        }
-        geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4));
-        mesh = new THREE.SkinnedMesh(geo, o.material);
-        mesh.bind(skeleton, new THREE.Matrix4());
+      if (o.isSkinnedMesh && skeleton) {
+        // Вершины предмета лежат в системе его собственных костей: оставляем его матрицы привязки,
+        // а сами кости подменяем костями героя — тогда предмет двигается вместе с анимацией героя.
+        const sk = new THREE.Skeleton(o.skeleton.bones.map(heroBone), o.skeleton.boneInverses.map((m) => m.clone()));
+        mesh = new THREE.SkinnedMesh(o.geometry, o.material);
+        mesh.bind(sk, o.bindMatrix.clone());
       } else {
-        mesh = new THREE.Mesh(geo, o.material);
+        mesh = new THREE.Mesh(o.geometry, o.material);
+        mesh.applyMatrix4(o.matrixWorld);
       }
       mesh.frustumCulled = false;
       hero.add(mesh);
