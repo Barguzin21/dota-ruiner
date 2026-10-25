@@ -406,3 +406,31 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 .hist { margin-top: 8px; display: grid; gap: 4px; }
 .hist svg { width: 100%; height: 46px; }
 .hist.psub, .hist .psub { white-space: normal; }
+/* телефон: симметричная шапка матча, кнопки сеткой, меню разделов рядами по центру, аккаунты, карта */
+@media (max-width: 700px) {
+  .mhead { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center; }
+  .mhead > div:first-child { grid-column: 1 / -1; margin: 0 0 4px; }
+  .mhead > .pill:last-child:nth-child(even) { grid-column: 1 / -1; }
+  .mhead .pill { display: grid; justify-items: center; }
+  .verdict ~ .actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .verdict ~ .actions .btn { justify-content: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vote { justify-content: center; text-align: center; }
+  .vote > span:first-child { flex-basis: 100%; }
+  .vote .btn { flex: 1 1 0; justify-content: center; max-width: 160px; }
+  .vcard .vbody { text-align: center; }
+  .tabs, .sport .tabs { position: static; transform: none !important; overflow: visible; background: none; padding: 4px 0; }
+  .tabs-in { flex-wrap: wrap; justify-content: center; gap: 4px; }
+  .tabs button { padding: 7px 11px; font-size: 13px; }
+  .tabs button.on { background: var(--panel2); color: var(--text); }
+  .sport .tabs button.on { background: var(--red); }
+  .tab-ind { display: none; }
+  .prow.thead.acc { display: none; }
+  .prow.acc { grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-areas: "a n g" "a m m"; row-gap: 6px; }
+  .prow.acc > img.h { grid-area: a; align-self: start; width: 48px; height: 27px; }
+  .prow.acc > div:nth-child(2) { grid-area: n; }
+  .prow.acc > .num:nth-child(3) { grid-area: g; font-size: 14px; }
+  .prow.acc > .num:nth-child(3) .psub { font-size: 11px; white-space: nowrap; }
+  .prow.acc > .accmark { grid-area: m; justify-content: flex-start; }
+  .mapwrap { grid-template-columns: 1fr; }
+}
+.look .viewsw { position: static; }

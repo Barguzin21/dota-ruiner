@@ -1,6 +1,6 @@
 // Примерочная: герои → наборы и предметы по слотам, цены, образы по бюджету (правила + ИИ).
-import { $, $$, esc, rub, consts, heroTall, getJSON, toast, askAI, API } from './util.js?v=202610260109';
-import { icon as ic } from './icons.js?v=202610260109';
+import { $, $$, esc, rub, consts, heroTall, getJSON, toast, askAI, API, store } from './util.js?v=202610260115';
+import { icon as ic } from './icons.js?v=202610260115';
 
 const RAR = { common: ['Обычный', '#b0c3d9'], uncommon: ['Необычный', '#5e98d9'], rare: ['Редкий', '#4b69ff'], mythical: ['Мифический', '#8847ff'],
   legendary: ['Легендарный', '#d32ce6'], immortal: ['Бессмертный', '#e4ae39'], arcana: ['Аркана', '#ade55c'], ancient: ['Древний', '#eb4b4b'], seasonal: ['Сезонный', '#fff34f'] };
@@ -88,7 +88,18 @@ function heroPage(app, C, D, P, params) {
 
   // 3D, если для героя выгружены модели; иначе, картинка набора / портрет.
   let viewer = null;
+  let man3d = null; // модели героя есть: показываем переключатель 3D / 2D
   const look = $('#look');
+  const viewSw = () => man3d ? `<div class="viewsw" role="group" aria-label="Вид героя">${['3d', '2d'].map((v) => `<button data-view="${v}" class="${(viewer ? '3d' : '2d') === v ? 'on' : ''}">${v.toUpperCase()}</button>`).join('')}</div>` : '';
+  const bindSw = () => $$('.viewsw button', look).forEach((b) => (b.onclick = () => {
+    store.set('view3', b.dataset.view);
+    if (b.dataset.view === '3d') { if (!viewer) start3d(); return; }
+    if (!viewer) return;
+    viewer.dispose();
+    viewer = null;
+    look.classList.remove('is3d');
+    drawStage();
+  }));
   const drawStage = () => {
     const set = st.set && D.sets.find((s) => s.id === st.set);
     const lookSet = set; // st.set сбрасывается, как только меняют отдельный предмет
@@ -100,6 +111,7 @@ function heroPage(app, C, D, P, params) {
       look.innerHTML = lookSet?.img
         ? `<img src="${icon(lookSet)}" alt=""><div class="lt">${title}</div>`
         : `<img src="${heroTall(D.hero)}" alt="" style="object-fit:contain;height:90%"><div class="lt">${title}</div>`;
+      if (man3d) { look.insertAdjacentHTML('beforeend', `<div class="l3d">${viewSw()}</div>`); bindSw(); }
     }
     let total = 0;
     let unknown = 0;
@@ -311,14 +323,18 @@ function heroPage(app, C, D, P, params) {
   start3d();
 
   async function start3d() {
-    const v3 = await import('./viewer3d.js?v=202610260109').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610260115').catch(() => null);
     const man = v3 && (await v3.hasModels(D.hero));
     if (!man || !document.body.contains(look)) return;
+    man3d = man;
+    if (store.get('view3', '3d') === '2d') return drawStage(); // выбран 2D: картинка набора + переключатель
     look.classList.add('is3d');
-    look.innerHTML = `<div class="lt"></div><div class="l3d"><span class="badge3d">3D</span>
+    look.innerHTML = `<div class="lt"></div><div class="l3d"><span class="vsw-slot"></span>
       <button class="btn ghost sm" id="snap" title="Сохранить картинку">${ic('camera')}</button></div><div class="l3load"><div class="spinner"></div></div>`;
     viewer = v3.createViewer(look, man);
-    window.addEventListener('hashchange', () => viewer.dispose(), { once: true });
+    $('.vsw-slot', look).outerHTML = viewSw();
+    bindSw();
+    window.addEventListener('hashchange', () => viewer?.dispose(), { once: true });
     $('#snap').onclick = () => {
       const a = document.createElement('a');
       a.download = `${D.hero}-look.png`;

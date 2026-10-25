@@ -260,9 +260,9 @@ svg text { font-family: Inter, sans-serif; }
 .modal canvas { width: 100%; height: auto; border-radius: 12px; }
 #toast {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(80px); background: var(--text); color: var(--bg);
-  padding: 10px 16px; border-radius: 10px; font-weight: 600; transition: transform .25s; z-index: 60; pointer-events: none;
+  padding: 10px 16px; border-radius: 10px; font-weight: 600; transition: transform .25s, opacity .25s; z-index: 60; pointer-events: none; opacity: 0;
 }
-#toast.on { transform: translateX(-50%) translateY(0); }
+#toast.on { transform: translateX(-50%) translateY(0); opacity: 1; }
 
 /* список матчей игрока */
 .mlist { display: grid; gap: 6px; }
