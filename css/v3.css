@@ -438,3 +438,6 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 .look .l2d { position: absolute; inset: 0 0 34px; width: 100%; height: calc(100% - 34px); object-fit: contain; }
 .stage .look .lt small { display: block; font: 500 11px var(--body, inherit); color: var(--muted); text-shadow: none; }
 .stage .look:has(.l2d) { aspect-ratio: 4 / 5; background: radial-gradient(circle at 50% 85%, rgba(255, 194, 61, .14), transparent 45%), radial-gradient(circle at 50% 30%, rgba(61, 139, 255, .14), transparent 60%), #0b0d13; }
+/* вердикт, причины, кнопки и голосование помещаются в первый экран */
+.verdict ~ .actions { margin: 10px 0 0; }
+.verdict ~ .vote { margin-top: 8px; padding: 7px 14px; }

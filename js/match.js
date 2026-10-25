@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610260208';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202610260208';
-import { coachSection, me, itemTimings } from './coach.js?v=202610260208';
-import { icon as ic } from './icons.js?v=202610260208';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610260213';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202610260213';
+import { coachSection, me, itemTimings } from './coach.js?v=202610260213';
+import { icon as ic } from './icons.js?v=202610260213';
 
 let A; // текущий разбор
 let C; // справочники
@@ -127,7 +127,6 @@ function draw(app) {
       </div>
     </section>
     <div class="reasons reveal">${r.neg.slice(0, 4).map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('') || '<div class="reason"><b>Явных провалов нет</b><span>Просто хуже остальных по сумме метрик.</span></div>'}</div>
-    <div class="vote reveal" id="vote"></div>
     <div class="actions">
       <button class="btn ghost" data-act="defend" title="Оправдать руинера">${ic('scale')} Оправдать</button>
       <button class="btn ghost" data-act="why" title="Почему именно он?">${ic('search')} Почему он?</button>
@@ -138,6 +137,7 @@ function draw(app) {
       <button class="btn ghost" data-act="coach">${ic('cap')} Обучение</button>
       <a class="btn ghost act-right" href="#/sets/${r.heroKey}" title="Примерочная: сеты на ${esc(r.hero)}">${ic('shirt')} Сеты ${esc(r.hero)}</a>
     </div>
+    <div class="vote reveal" id="vote"></div>
     <div id="extra"></div>
     <nav class="tabs"><div class="tabs-in">${TABS.map(([k, t], i) => `<button data-tab="${k}" class="${i ? '' : 'on'}">${t}</button>`).join('')}<i class="tab-ind"></i></div></nav>
     ${TABS.map(([k, t], i) => `<section class="msec" id="sec-${k}"><div class="msec-n" aria-hidden="true">${String(i + 1).padStart(2, '0')}</div>
@@ -203,7 +203,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202610260208').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610260213').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
