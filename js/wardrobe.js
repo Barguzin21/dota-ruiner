@@ -1,6 +1,6 @@
 // Примерочная: герои → наборы и предметы по слотам, цены, образы по бюджету (правила + ИИ).
-import { $, $$, esc, rub, consts, heroTall, getJSON, toast, askAI, API } from './util.js?v=202610252129';
-import { icon as ic } from './icons.js?v=202610252129';
+import { $, $$, esc, rub, consts, heroTall, getJSON, toast, askAI, API } from './util.js?v=202610252139';
+import { icon as ic } from './icons.js?v=202610252139';
 
 const RAR = { common: ['Обычный', '#b0c3d9'], uncommon: ['Необычный', '#5e98d9'], rare: ['Редкий', '#4b69ff'], mythical: ['Мифический', '#8847ff'],
   legendary: ['Легендарный', '#d32ce6'], immortal: ['Бессмертный', '#e4ae39'], arcana: ['Аркана', '#ade55c'], ancient: ['Древний', '#eb4b4b'], seasonal: ['Сезонный', '#fff34f'] };
@@ -84,13 +84,13 @@ function heroPage(app, C, D, P, params) {
       </section>
     </div>`;
 
-  // 3D, если для героя выгружены модели; иначе — картинка набора / портрет.
+  // 3D, если для героя выгружены модели; иначе, картинка набора / портрет.
   let viewer = null;
   const look = $('#look');
   const drawStage = () => {
     const set = st.set && D.sets.find((s) => s.id === st.set);
     const lookSet = set; // st.set сбрасывается, как только меняют отдельный предмет
-    const title = lookSet ? esc(lookSet.ru) : `${esc(h.localized_name)} — свой образ`;
+    const title = lookSet ? esc(lookSet.ru) : `${esc(h.localized_name)}, свой образ`;
     if (viewer) {
       $('.lt', look).innerHTML = title;
       viewer.wear(Object.values(st.eq));
@@ -107,7 +107,7 @@ function heroPage(app, C, D, P, params) {
       const p = it && !def ? price(it) : null;
       if (it && !def) p == null ? unknown++ : (total += p);
       return `<div class="slot ${st.slot === s && st.view === 'items' ? 'on' : ''}" data-slot="${s}">${icon(it) ? `<img src="${icon(it)}" alt="">` : '<img alt="">'}
-        <div style="min-width:0"><div class="k">${slotName(s)}</div><div class="nm">${esc(it?.ru || '—')}</div></div><div class="pr">${def ? 'стандарт' : rub(p)}</div></div>`;
+        <div style="min-width:0"><div class="k">${slotName(s)}</div><div class="nm">${esc(it?.ru || '-')}</div></div><div class="pr">${def ? 'стандарт' : rub(p)}</div></div>`;
     }).join('');
     $('#sum').textContent = rub(total) + (unknown ? ` + ${unknown} без цены` : '');
     if (set && price(set) != null) $('#sum').textContent += ` · набор ${rub(price(set))}`;
@@ -127,7 +127,7 @@ function heroPage(app, C, D, P, params) {
       ${partsCheaper ? '<div class="psub" style="color:var(--green)">по частям дешевле</div>' : ''}</div></div>`;
   };
 
-  // У набора нет своей иконки в игре — показываем коллаж из иконок его предметов.
+  // У набора нет своей иконки в игре, показываем коллаж из иконок его предметов.
   const collage = (ids) => {
     const imgs = ids.map((id) => byId[id]).filter((it) => it?.img).slice(0, 4);
     return imgs.length ? `<div class="collage n${imgs.length}">${imgs.map((it) => `<img src="${icon(it)}" alt="" loading="lazy">`).join('')}</div>` : '<div class="noimg">нет картинки</div>';
@@ -173,11 +173,11 @@ function heroPage(app, C, D, P, params) {
     window.innerWidth < 900 && $('#look').scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Образы по правилам: в каждом ценовом диапазоне — самый редкий и ходовой набор.
+  // Образы по правилам: в каждом ценовом диапазоне, самый редкий и ходовой набор.
   const ruleLooks = () => TIERS.map(([tier, title, lo, hi]) => {
     const c = D.sets.filter((s) => { const p = setPrice(s); return p != null && p >= lo && p < hi; })
       .sort((a, b) => rank(b.r) - rank(a.r) || vol(b) - vol(a))[0];
-    return c && { tier, title, name: c.ru, why: `${RAR[c.r]?.[0] || ''} набор, ${vol(c)} шт. в продаже — самый редкий в этом бюджете.`, items: c.items, set: c.id };
+    return c && { tier, title, name: c.ru, why: `${RAR[c.r]?.[0] || ''} набор, ${vol(c)} шт. в продаже, самый редкий в этом бюджете.`, items: c.items, set: c.id };
   }).filter(Boolean);
 
   const drawLooks = (looks) => {
@@ -217,7 +217,7 @@ function heroPage(app, C, D, P, params) {
         }).filter((l) => l.items.length);
       drawLooks(looks.length ? looks : ruleLooks());
     } catch (err) {
-      toast(err.status === 503 ? 'ИИ ещё не подключён — показаны подборки по правилам' : 'ИИ не ответил, показаны подборки по правилам');
+      toast(err.status === 503 ? 'ИИ ещё не подключён, показаны подборки по правилам' : 'ИИ не ответил, показаны подборки по правилам');
     }
     btn.disabled = false;
     btn.innerHTML = `${ic('sparkles')} Подобрать стильные образы с ИИ`;
@@ -240,10 +240,10 @@ function heroPage(app, C, D, P, params) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `<div><h3 style="font:700 16px var(--display);margin:0 0 12px">Где купить</h3>
-      ${set && price(set) != null ? `<p><a class="btn gold" href="${market(set.n)}" target="_blank" rel="noopener">Набор целиком в Steam — ${rub(price(set))}</a></p>` : ''}
+      ${set && price(set) != null ? `<p><a class="btn gold" href="${market(set.n)}" target="_blank" rel="noopener">Набор целиком в Steam, ${rub(price(set))}</a></p>` : ''}
       ${its.map((it) => `<div class="slot" style="cursor:default"><img src="${icon(it) || ''}" alt=""><div><div class="k">${slotName(it.s)}</div><div class="nm">${esc(it.ru)}</div></div>
         <a class="btn ghost" href="${market(it.n)}" target="_blank" rel="noopener">${rub(price(it))} · Steam</a></div>`).join('') || '<p class="psub">Сейчас на герое только стандартные предметы.</p>'}
-      <p class="psub">Цены — средние по маркету, в Steam может отличаться.</p>
+      <p class="psub">Цены, средние по маркету, в Steam может отличаться.</p>
       <div class="actions"><button class="btn ghost" data-close>Закрыть</button></div></div>`;
     modal.onclick = (e) => { if (e.target === modal || 'close' in e.target.dataset) modal.remove(); };
     document.body.append(modal);
@@ -255,7 +255,7 @@ function heroPage(app, C, D, P, params) {
   start3d();
 
   async function start3d() {
-    const v3 = await import('./viewer3d.js?v=202610252129').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610252139').catch(() => null);
     const man = v3 && (await v3.hasModels(D.hero));
     if (!man || !document.body.contains(look)) return;
     look.classList.add('is3d');

@@ -1,4 +1,4 @@
-// Сайт живёт на GitHub Pages, а функции — на Vercel: разрешаем запросы с github.io и локалки.
+// Сайт живёт на GitHub Pages, а функции, на Vercel: разрешаем запросы с github.io и локалки.
 const ALLOWED = /^https:\/\/[\w-]+\.github\.io$|^http:\/\/localhost(:\d+)?$/;
 
 export function cors(req, res) {

@@ -3,9 +3,9 @@ export const $ = (s, root = document) => root.querySelector(s);
 export const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export const fmt = (n) => Math.round(n || 0).toLocaleString('ru-RU');
-export const rub = (n) => n == null ? '—' : `${n < 10 ? n.toFixed(2).replace('.', ',') : fmt(n)} ₽`;
+export const rub = (n) => n == null ? '-' : `${n < 10 ? n.toFixed(2).replace('.', ',') : fmt(n)} ₽`;
 export const OD = 'https://api.opendota.com/api';
-// GitHub Pages не запускает функции — цены и ИИ живут на Vercel.
+// GitHub Pages не запускает функции, цены и ИИ живут на Vercel.
 export const API = location.hostname.endsWith('github.io') ? 'https://dota-ruiner.vercel.app/api' : 'api';
 
 let constsP;
@@ -114,7 +114,7 @@ function tilt(el) {
 
 // Markdown от ИИ: заголовки, жирный, списки, абзацы. Всё экранируется до разметки.
 export function md(text) {
-  const lines = esc(text).split('\n');
+  const lines = esc(String(text).replace(/\s*—\s*/g, ', ')).split('\n'); // длинное тире не пропускаем
   let html = '';
   let list = false;
   for (const raw of lines) {

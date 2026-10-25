@@ -1,11 +1,11 @@
 // Роутер, главная, страница игрока.
-import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610252129';
-import { renderMatch } from './match.js?v=202610252129';
-import { renderSets } from './wardrobe.js?v=202610252129';
-import { coachPage, me, setMe } from './coach.js?v=202610252129';
-import { smurfPage } from './smurf.js?v=202610252129';
-import { icon as ic } from './icons.js?v=202610252129';
-import { rankName, analyze } from './analyze.js?v=202610252129';
+import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610252139';
+import { renderMatch } from './match.js?v=202610252139';
+import { renderSets } from './wardrobe.js?v=202610252139';
+import { coachPage, me, setMe } from './coach.js?v=202610252139';
+import { smurfPage } from './smurf.js?v=202610252139';
+import { icon as ic } from './icons.js?v=202610252139';
+import { rankName, analyze } from './analyze.js?v=202610252139';
 
 const app = $('#app');
 const STEAM64 = 76561197960265728n;
@@ -17,13 +17,13 @@ export function parseInput(s) {
   if (m) return { match: m[1] };
   m = s.match(/players?\/(\d{1,20})/i) || s.match(/profiles\/(\d{17})/i);
   if (m) return { player: toAccount(m[1]) };
-  if (/steamcommunity\.com\/id\//i.test(s)) return { error: 'Короткие ссылки Steam (/id/ник) не поддерживаются — вставь ссылку вида /profiles/7656… или код для друзей.' };
+  if (/steamcommunity\.com\/id\//i.test(s)) return { error: 'Короткие ссылки Steam (/id/ник) не поддерживаются, вставь ссылку вида /profiles/7656… или код для друзей.' };
   m = s.match(/^\d+$/);
   if (!m) return { error: 'Не понял. Вставь ID матча, ссылку на матч или профиль.' };
   const n = BigInt(s);
   if (n >= STEAM64) return { player: toAccount(s) };
   if (n > 4294967295n) return { match: s };
-  // Короткие числа: ID матча сейчас ~9 млрд, ID аккаунта — до ~2 млрд.
+  // Короткие числа: ID матча сейчас ~9 млрд, ID аккаунта, до ~2 млрд.
   return n > 2500000000n ? { match: s } : { ambiguous: s };
 }
 const toAccount = (id) => (BigInt(id) >= STEAM64 ? String(BigInt(id) - STEAM64) : String(id));
@@ -73,7 +73,7 @@ function home() {
     <input id="sidq" placeholder="Например 76561198452324571 или steamcommunity.com/profiles/…" autocomplete="off"><div id="sidout" class="sidout"></div></div>`);
   $('#sidq').oninput = (e) => ($('#sidout').innerHTML = steamIds(e.target.value));
   fx(app);
-  import('./viewer3d.js?v=202610252129').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
+  import('./viewer3d.js?v=202610252139').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
 }
 
 // Все форматы Steam ID из одного ввода.
@@ -96,7 +96,7 @@ document.addEventListener('click', (e) => {
   if (b) navigator.clipboard.writeText(b.dataset.copy).then(() => toast('Скопировано'), () => {});
 });
 
-// Вход в обучение: если «я» уже известен — сразу тренер, иначе просим профиль.
+// Вход в обучение: если «я» уже известен, сразу тренер, иначе просим профиль.
 function coachLanding() {
   if (me()) { location.hash = `#/coach/${me()}`; return; }
   app.innerHTML = `<div class="coachland reveal">
@@ -178,7 +178,7 @@ async function ruinStats(account, list, c) {
     const tiles = [
       ['Раз руинер', `${res.filter((x) => x.ruiner).length} из ${res.length}`],
       ['Раз MVP', `${res.filter((x) => x.mvp).length} из ${res.length}`],
-      ['Средний руин в поражениях', lost.length ? `${avg(lost, (x) => x.me.share)}%` : '—'],
+      ['Средний руин в поражениях', lost.length ? `${avg(lost, (x) => x.me.share)}%` : '-'],
       ['Среднее влияние на игру', avg(res, (x) => x.me.score)],
       ['Винрейт', `${Math.round(res.filter((x) => x.me.win).length / res.length * 100)}%`],
     ];
@@ -246,7 +246,7 @@ let lastY = scrollY;
 let anchorY = scrollY;
 addEventListener('scroll', () => {
   const y = scrollY;
-  if ((y > lastY) !== (lastY > anchorY)) anchorY = lastY; // сменилось направление — новая точка отсчёта
+  if ((y > lastY) !== (lastY > anchorY)) anchorY = lastY; // сменилось направление, новая точка отсчёта
   if (y < 160) document.body.classList.remove('bars-hidden');
   else if (Math.abs(y - anchorY) > 40) document.body.classList.toggle('bars-hidden', y > anchorY);
   // меню разделов прячем, только когда оно уже прилипло к верху, а не стоит на своём месте в странице

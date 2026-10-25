@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610252129';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202610252129';
-import { coachSection, me, itemTimings } from './coach.js?v=202610252129';
-import { icon as ic } from './icons.js?v=202610252129';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610252139';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202610252139';
+import { coachSection, me, itemTimings } from './coach.js?v=202610252139';
+import { icon as ic } from './icons.js?v=202610252139';
 
 let A; // текущий разбор
 let C; // справочники
@@ -55,10 +55,10 @@ async function requestParse(app, id) {
     if (m.od_data?.has_parsed || m.version) {
       A = analyze(m, { heroes: C.heroes, itemsById: C.itemsById });
       draw(app);
-      toast('Реплей разобран — анализ обновлён');
+      toast('Реплей разобран, анализ обновлён');
     } else b.querySelector('span').textContent = 'Реплей пока недоступен (у старых матчей Valve его удаляет). Показываем анализ по общей статистике.';
   } catch {
-    b.querySelector('span').textContent = 'Не удалось заказать разбор реплея. Анализ — по общей статистике.';
+    b.querySelector('span').textContent = 'Не удалось заказать разбор реплея. Анализ, по общей статистике.';
   }
 }
 
@@ -90,7 +90,7 @@ function draw(app) {
       ${A.rank ? `<div class="pill"><span class="lbl">Средний ранг</span><b>${rankName(A.rank)}</b></div>` : ''}
       <div class="pill"><span class="lbl">Дата</span><b>${new Date(A.startTime * 1000).toLocaleDateString('ru-RU')}</b></div>
     </div>
-    ${A.parsed ? '' : '<div class="banner" id="parse"><div class="spinner" style="width:22px;height:22px;margin:0;border-width:2px"></div><span>Реплей ещё не разобран — заказали разбор у OpenDota. Пока показываем анализ по общей статистике.</span></div>'}
+    ${A.parsed ? '' : '<div class="banner" id="parse"><div class="spinner" style="width:22px;height:22px;margin:0;border-width:2px"></div><span>Реплей ещё не разобран, заказали разбор у OpenDota. Пока показываем анализ по общей статистике.</span></div>'}
     <section class="verdict">
       <div class="vcard tilt reveal"><div class="gyro" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="vstage" data-hero3d="${r.heroKey}" data-tone="red"><img class="portrait full" src="${heroFull(r.heroKey)}" onerror="this.onerror=null;this.src='${portrait(r, 1)}';this.classList.remove('full')" alt="${esc(r.hero)}">
@@ -179,7 +179,7 @@ function draw(app) {
   mount3d(app);
 }
 
-// Живые герои в карточках вердикта (3D) или полноростовой рендер (2D) — переключатель запоминается.
+// Живые герои в карточках вердикта (3D) или полноростовой рендер (2D), переключатель запоминается.
 async function mount3d(root) {
   const verdict = $('.verdict', root);
   const viewers = [];
@@ -201,7 +201,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202610252129').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610252139').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -222,7 +222,7 @@ function action(act) {
   } else if (act === 'why') {
     const losers = A.players.filter((p) => !p.win).sort((a, b) => a.score - b.score);
     box.innerHTML = `<div class="panel reveal"><h3>Почему именно он?</h3>
-      <p style="margin-top:0;color:var(--muted)">Каждого игрока модель сравнивает с другими на том же герое (перцентили OpenDota) и с ожиданиями его роли. Считаются 10–11 метрик: фарм, урон, смерти и их цена, дисциплина (смерти без команды, перед потерей зданий, при большом перевесе), командные драки, линия к 10:00, обзор, давление на здания. Руинер — игрок проигравшей команды с самым низким итогом. Устойчивость ${A.stability}% означает, что при 400 случайных вариантах весов он остаётся руинером в ${A.stability}% случаев.</p>
+      <p style="margin-top:0;color:var(--muted)">Каждого игрока модель сравнивает с другими на том же герое (перцентили OpenDota) и с ожиданиями его роли. Считаются 10–11 метрик: фарм, урон, смерти и их цена, дисциплина (смерти без команды, перед потерей зданий, при большом перевесе), командные драки, линия к 10:00, обзор, давление на здания. Руинер, игрок проигравшей команды с самым низким итогом. Устойчивость ${A.stability}% означает, что при 400 случайных вариантах весов он остаётся руинером в ${A.stability}% случаев.</p>
       <div class="whygrid">${losers.map((p) => `<div class="sc"><span class="pname">${esc(p.hero)}</span>${scoreBar(p.score)}<span class="num">${p.score}</span><span class="chip ${p === r ? 'neg' : ''}">руин ${p.share}%</span></div>`).join('')}</div>
       <div class="sub">Из чего сложился счёт ${esc(r.hero)}</div>${breakdown(r)}
       <div class="sub">Все сигналы против ${esc(r.hero)}</div>
@@ -240,7 +240,7 @@ function action(act) {
   box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
-// Разложение итога: каждая метрика — её значение 0–100 и вес в формуле.
+// Разложение итога: каждая метрика, её значение 0–100 и вес в формуле.
 function breakdown(p) {
   return `<div class="bd">${p.breakdown.slice().sort((a, b) => b.weight - a.weight).map((b) => {
     const v = Math.round(b.value * 100);
@@ -302,8 +302,8 @@ function pdetail(p) {
   const st = [['Ценность героя (NW)', fmt(p.nw)], ['Опыт в минуту', p.xpm], ['Добито / не отдано', `${p.lh} / ${p.dn}`], ['Урон по героям', fmt(p.dmg)],
     ['Доля урона команды', `${Math.round(p.dmgShare * 100)}%`], ['Урон по зданиям', fmt(p.tower)], ['Лечение', fmt(p.heal)], ['Варды obs / sentry', `${p.obs} / ${p.sen}`],
     ['Контроль', `${Math.round(p.stuns)} с`], ['Мёртв от игры', `${Math.round(p.deadShare * 100)}%`], ['Цена смертей', fmt(p.deathCost)], ['Скормил врагам', fmt(p.fed)],
-    ['Большие драки', p.fightsAll ? `${p.fightsIn} из ${p.fightsAll}` : '—'], ['Золото к 10:00', p.gold10 != null ? fmt(p.gold10) : '—'],
-    ['Линия против соперника', p.laneDiff != null ? `${p.laneDiff > 0 ? '+' : '−'}${fmt(Math.abs(p.laneDiff))}` : '—', p.laneOpp ? `vs ${esc(p.laneOpp)}` : ''], ['Действий в минуту', p.apm ?? '—']];
+    ['Большие драки', p.fightsAll ? `${p.fightsIn} из ${p.fightsAll}` : '-'], ['Золото к 10:00', p.gold10 != null ? fmt(p.gold10) : '-'],
+    ['Линия против соперника', p.laneDiff != null ? `${p.laneDiff > 0 ? '+' : '−'}${fmt(Math.abs(p.laneDiff))}` : '-', p.laneOpp ? `vs ${esc(p.laneOpp)}` : ''], ['Действий в минуту', p.apm ?? '-']];
   return `<div class="pdetail">
     <div class="stats">${st.map(([k, v, s]) => statTile(k, v, s)).join('')}</div>
     <div class="items">${itemIcons([...p.items, p.neutral].filter(Boolean))}</div>
@@ -317,7 +317,7 @@ function pdetail(p) {
 
 // ---------- линии
 function lanes(el) {
-  const col = (ps) => ps.map((p) => `<div class="lp"><img src="${portrait(p)}" alt=""><div><div class="pname">${esc(p.hero)}</div><div class="psub">${fmt(p.gold10)} золота · ${p.lh10 ?? '—'} крипов</div></div></div>`).join('');
+  const col = (ps) => ps.map((p) => `<div class="lp"><img src="${portrait(p)}" alt=""><div><div class="pname">${esc(p.hero)}</div><div class="psub">${fmt(p.gold10)} золота · ${p.lh10 ?? '-'} крипов</div></div></div>`).join('');
   el.innerHTML = `<div class="panel"><h3>Стадия линий <small>золото героев к 10:00</small></h3>
     ${A.lanes.length ? `<div class="lanes">${A.lanes.map((l) => `<div class="lane reveal ${l.winner || ''}">
       <div class="lane-h"><b>${l.lane} линия</b><span class="${l.winner === 'radiant' ? 'rad' : l.winner === 'dire' ? 'dire' : 'psub'}">${l.winner ? `${teamName(l.winner)} +${fmt(Math.abs(l.diff))}` : 'примерно ровно'}</span></div>
@@ -348,9 +348,9 @@ async function accounts(el) {
     <div class="prow thead acc"><span></span><span>Игрок</span><span>Всего игр</span><span class="hide-s">Винрейт</span><span class="hide-s">Игр на герое</span><span>Пометка</span></div>
     ${rows.map((x) => `<div class="prow acc ${x.smurf ? 'ruiner' : ''}"><img class="h" src="${portrait(x.p)}" alt="">
       <div style="min-width:0"><div class="pname">${esc(x.p.name)}</div><div class="psub">${esc(x.p.hero)} · ${x.prof?.rank_tier ? rankName(x.prof.rank_tier) : 'ранг скрыт'}</div></div>
-      <div class="num">${x.hidden ? 'аноним' : x.games != null ? fmt(x.games) : '<span class="psub">история скрыта</span>'}</div><div class="num hide-s">${x.wr != null ? x.wr + '%' : '—'}</div>
-      <div class="num hide-s">${x.onHero ?? '—'}</div><div class="accmark">${x.smurf ? `<a class="chip neg" href="#/smurf/${x.p.accountId}">${x.smurf} →</a>` : x.onHero != null && x.onHero < 5 ? '<span class="chip">впервые на герое</span>' : ''}${x.p.accountId ? `<a class="chip" href="#/smurf/${x.p.accountId}">${ic('usersearch')} Проверить</a>` : ''}</div></div>`).join('')}
-    <p class="psub" style="margin:12px 0 0">«Похож на смурфа» — меньше 400 игр на аккаунте и показатели лучше 75% игроков на этом герое. Скрытый профиль нельзя проверить.</p></div>`;
+      <div class="num">${x.hidden ? 'аноним' : x.games != null ? fmt(x.games) : '<span class="psub">история скрыта</span>'}</div><div class="num hide-s">${x.wr != null ? x.wr + '%' : '-'}</div>
+      <div class="num hide-s">${x.onHero ?? '-'}</div><div class="accmark">${x.smurf ? `<a class="chip neg" href="#/smurf/${x.p.accountId}">${x.smurf} →</a>` : x.onHero != null && x.onHero < 5 ? '<span class="chip">впервые на герое</span>' : ''}${x.p.accountId ? `<a class="chip" href="#/smurf/${x.p.accountId}">${ic('usersearch')} Проверить</a>` : ''}</div></div>`).join('')}
+    <p class="psub" style="margin:12px 0 0">«Похож на смурфа», меньше 400 игр на аккаунте и показатели лучше 75% игроков на этом герое. Скрытый профиль нельзя проверить.</p></div>`;
 }
 
 function bindDetail(el, p) {
@@ -388,7 +388,7 @@ function chart(el) {
   for (let mnt = 0; mnt < g.length; mnt += 5) ticks.push(`<text x="${sx(mnt)}" y="${H - 4}" fill="#8b91a5" font-size="11" text-anchor="middle">${mnt}</text>`);
   const r = A.ruiner;
   const turn = A.turning;
-  el.innerHTML = `<div class="panel"><h3>Преимущество по золоту и опыту <small>выше — Силы Света, ниже — Силы Тьмы</small></h3>
+  el.innerHTML = `<div class="panel"><h3>Преимущество по золоту и опыту <small>выше, Силы Света, ниже, Силы Тьмы</small></h3>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="График преимущества">
       <defs>
         <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fd36f" stop-opacity=".45"/><stop offset=".5" stop-color="#5fd36f" stop-opacity="0"/><stop offset=".5" stop-color="#ff6a3d" stop-opacity="0"/><stop offset="1" stop-color="#ff6a3d" stop-opacity=".45"/></linearGradient>
@@ -414,7 +414,7 @@ function turnText() {
   const l = teamName(A.winner === 'radiant' ? 'dire' : 'radiant');
   if (t.comeback) return `Камбэк! ${l} вели до ${fmt(t.loserMax)} золота на ${t.loserMaxAt + 1}-й минуте, но ${w} отыгрались и окончательно вышли вперёд на ${t.minute}-й минуте.`;
   if (t.minute <= 1) return `${w} вели с первых минут и ни разу не отдали преимущество.`;
-  return `${w} окончательно перехватили преимущество на ${t.minute}-й минуте. Максимум у проигравших — ${fmt(t.loserMax)} золота.`;
+  return `${w} окончательно перехватили преимущество на ${t.minute}-й минуте. Максимум у проигравших, ${fmt(t.loserMax)} золота.`;
 }
 
 // ---------- карта (координаты OpenDota: клетки 64..192)
@@ -440,9 +440,9 @@ function map(el) {
           <label><input type="checkbox" id="mo" checked> Observer</label>
           <label><input type="checkbox" id="ms" checked> Sentry</label>
         </div>
-        <select id="mpl"><option value="">Все игроки</option>${pl.map((p) => `<option value="${p.idx}" ${p === A.ruiner ? 'selected' : ''}>${esc(p.hero)} — ${esc(p.name)}${p === A.ruiner ? ' (руинер)' : ''}</option>`).join('')}</select>
+        <select id="mpl"><option value="">Все игроки</option>${pl.map((p) => `<option value="${p.idx}" ${p === A.ruiner ? 'selected' : ''}>${esc(p.hero)}, ${esc(p.name)}${p === A.ruiner ? ' (руинер)' : ''}</option>`).join('')}</select>
         <div class="mapinfo" id="mi"></div>
-        <div class="legend"><span><i style="background:#5fd36f"></i>Свет</span><span><i style="background:#ff6a3d"></i>Тьма</span><span><i style="background:#ffd84a"></i>Observer</span><span><i style="background:#62b6ff"></i>Sentry</span><span>✕ — смерть</span><span><i style="background:#fff;opacity:.4"></i>Где был игрок</span></div>
+        <div class="legend"><span><i style="background:#5fd36f"></i>Свет</span><span><i style="background:#ff6a3d"></i>Тьма</span><span><i style="background:#ffd84a"></i>Observer</span><span><i style="background:#62b6ff"></i>Sentry</span><span>✕, смерть</span><span><i style="background:#fff;opacity:.4"></i>Где был игрок</span></div>
       </div>
     </div></div>`;
   const svg = $('#mp');
@@ -503,28 +503,37 @@ function episodes(el) {
 }
 
 // ---------- номинации
+// Главные три номинации крупно, остальные компактно ниже.
+const MAIN_NOMS = ['damage', 'immortal', 'feeder', 'multi', 'control', 'eyes'];
 function noms(el) {
-  el.innerHTML = `<div class="panel"><h3>Номинации матча</h3><div class="noms">${A.noms.map((n) => `
-    <div class="nom"><div class="ic nomic-${n.id}">${ic(n.icon)}</div><div><b>${n.title}</b><div class="v">${n.desc}</div>
-    <div class="who"><img src="${portrait(n.p)}" alt=""><span>${esc(n.p.name)}</span></div><div class="v">${esc(n.value)}</div></div></div>`).join('')}</div></div>`;
+  const main = MAIN_NOMS.map((id) => A.noms.find((n) => n.id === id)).filter(Boolean).slice(0, 3);
+  const rest = A.noms.filter((n) => !main.includes(n));
+  el.innerHTML = `<div class="panel">
+    <div class="nom-main">${main.map((n) => `
+      <div class="nomx reveal"><div class="nomx-img"><img src="${heroFull(n.p.heroKey)}" onerror="this.src='${heroTall(n.p.heroKey)}'" alt=""></div>
+        <div class="nomx-ic">${ic(n.icon)}</div><b>${n.title}</b><div class="v">${n.desc}</div>
+        <div class="nomx-who">${esc(n.p.name)}<span>${esc(n.p.hero)}</span></div><div class="nomx-val">${esc(n.value)}</div></div>`).join('')}</div>
+    ${rest.length ? `<div class="lbl nom-more">Остальные номинации</div><div class="nom-rest">${rest.map((n) => `
+      <div class="nomr"><span class="nomr-ic">${ic(n.icon)}</span><div><b>${n.title}</b><span>${esc(n.p.name)} · ${esc(n.value)}</span></div><img src="${portrait(n.p)}" alt=""></div>`).join('')}</div>` : ''}
+  </div>`;
 }
 
 // ---------- билды
 function builds(el) {
   const core = (k) => (C.itemsByKey[k]?.cost || 0) >= 1200;
   const list = A.players.slice().sort((a, b) => (a.team === b.team ? a.role - b.role : a.team === A.winner ? -1 : 1));
-  el.innerHTML = `<p class="psub" style="margin:0 0 10px">Сверху — покупки игрока с таймингами. Снизу — что чаще всего собирают на этом герое в середине и конце игры (OpenDota): зелёная рамка — игрок это тоже купил.</p>` +
+  el.innerHTML = `<p class="psub" style="margin:0 0 10px">Сверху, покупки игрока с таймингами. Снизу, что чаще всего собирают на этом герое в середине и конце игры (OpenDota): зелёная рамка, игрок это тоже купил.</p>` +
     list.map((p) => `
-    <div class="panel reveal" data-build="${p.idx}"><div class="teamhead"><span>${esc(p.hero)} <span class="psub">— ${esc(p.name)}, поз. ${p.role}</span>${p === A.ruiner ? '<span class="tag r">РУИНЕР</span>' : ''}</span><span class="${p.win ? 'rad' : 'dire'}">${p.win ? 'победа' : 'поражение'}</span></div>
+    <div class="panel reveal" data-build="${p.idx}"><div class="teamhead"><span>${esc(p.hero)} <span class="psub">- ${esc(p.name)}, поз. ${p.role}</span>${p === A.ruiner ? '<span class="tag r">РУИНЕР</span>' : ''}</span><span class="${p.win ? 'rad' : 'dire'}">${p.win ? 'победа' : 'поражение'}</span></div>
     <div class="timeline">${p.purchases.filter((x) => core(x.key)).map((x) => `<div><img src="${itemImg(x.key)}" alt="" title="${esc(C.itemsByKey[x.key]?.name || x.key)}" loading="lazy">${mmss(x.time)}</div>`).join('') || '<span class="psub">Нет данных о покупках</span>'}</div>
     <div class="meta" data-meta><span class="lbl">Мета на герое: загружаем…</span></div>
     <div class="tmchips" data-tm></div>
     ${p.neg.filter((x) => x.title === 'Нет сейв-предметов').map((x) => `<div class="psub" style="margin-top:8px;color:#ffb3b3">⚠ ${esc(x.text)}</div>`).join('')}</div>`).join('');
-  // Популярные предметы на героях — по одному запросу на героя, параллельно.
+  // Популярные предметы на героях, по одному запросу на героя, параллельно.
   list.forEach(async (p) => {
     itemTimings(p.heroId, p.purchases, C.itemsByKey).then((tl) => {
       const box = $(`[data-build="${p.idx}"] [data-tm]`, el);
-      if (box && tl.length) box.innerHTML = `<span class="lbl">Тайминги:</span>${tl.map((x) => `<span class="chip ${x.late > 0.7 ? 'neg' : x.late < 0.3 ? 'pos' : ''}" title="обычно к ${x.median ? mmss(x.median) : '—'}"><img src="${itemImg(x.key)}" alt="">${mmss(x.time)} · ${x.late > 0.7 ? `позже ${Math.round(x.late * 100)}%` : x.late < 0.3 ? `быстрее ${Math.round((1 - x.late) * 100)}%` : 'норма'}</span>`).join('')}`;
+      if (box && tl.length) box.innerHTML = `<span class="lbl">Тайминги:</span>${tl.map((x) => `<span class="chip ${x.late > 0.7 ? 'neg' : x.late < 0.3 ? 'pos' : ''}" title="обычно к ${x.median ? mmss(x.median) : '-'}"><img src="${itemImg(x.key)}" alt="">${mmss(x.time)} · ${x.late > 0.7 ? `позже ${Math.round(x.late * 100)}%` : x.late < 0.3 ? `быстрее ${Math.round((1 - x.late) * 100)}%` : 'норма'}</span>`).join('')}`;
     });
     const pop = await getJSON(`${OD}/heroes/${p.heroId}/itemPopularity`).catch(() => null);
     const box = $(`[data-build="${p.idx}"] [data-meta]`, el);
@@ -535,7 +544,7 @@ function builds(el) {
     const top = Object.entries(counts).map(([id, n]) => [C.itemsById[id], n]).filter(([k]) => k && core(k)).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k]) => k);
     const bought = new Set(p.purchases.map((x) => x.key));
     const hit = top.filter((k) => bought.has(k)).length;
-    // «нестандартно» — только то, что на этом герое почти никто не берёт ни в какой фазе игры
+    // «нестандартно», только то, что на этом герое почти никто не берёт ни в какой фазе игры
     const all = {};
     for (const part of ['start_game_items', 'early_game_items', 'mid_game_items', 'late_game_items']) for (const [id, n] of Object.entries(pop[part] || {})) all[C.itemsById[id]] = (all[C.itemsById[id]] || 0) + n;
     const total = Object.values(all).reduce((a, b) => a + b, 0) || 1;
@@ -568,9 +577,9 @@ async function draft(el) {
     }).join('')}</div>`;
     el.innerHTML = `<div class="panel"><h3>Чей драфт лучше? <small>средний винрейт героя против пятёрки соперников</small></h3>
       <div class="draft">${col('radiant')}<div class="vs"><div class="big rad">${(rw * 100).toFixed(1)}%</div>VS<div class="big dire">${(dw * 100).toFixed(1)}%</div></div>${col('dire')}</div>
-      <p style="color:var(--muted);margin:14px 0 0">${Math.abs(rw - dw) < 0.01 ? 'Драфты равные — матч решила игра, а не пики.' : `Драфт лучше у ${teamName(better)} (+${(Math.abs(rw - dw) * 100).toFixed(1)} п.п.). ${better === A.winner ? 'Они и победили.' : 'Но победили соперники — значит, разыграли лучше.'}`}</p></div>`;
+      <p style="color:var(--muted);margin:14px 0 0">${Math.abs(rw - dw) < 0.01 ? 'Драфты равные, матч решила игра, а не пики.' : `Драфт лучше у ${teamName(better)} (+${(Math.abs(rw - dw) * 100).toFixed(1)} п.п.). ${better === A.winner ? 'Они и победили.' : 'Но победили соперники, значит, разыграли лучше.'}`}</p></div>`;
   } catch {
-    el.innerHTML = '<div class="panel empty">Не удалось получить матчапы — попробуй позже.</div>';
+    el.innerHTML = '<div class="panel empty">Не удалось получить матчапы, попробуй позже.</div>';
   }
 }
 
@@ -598,7 +607,7 @@ const playerBrief = (p) => ({
 
 function aiFallbackNote(err) {
   return err?.status === 503
-    ? '<p style="color:var(--muted)">ИИ ещё не подключён — пока разбор по правилам модели.</p>'
+    ? '<p style="color:var(--muted)">ИИ ещё не подключён, пока разбор по правилам модели.</p>'
     : `<p style="color:var(--muted)">ИИ сейчас недоступен (${esc(err?.message)}). Разбор по правилам модели:</p>`;
 }
 
@@ -606,7 +615,7 @@ function rulesStory() {
   const r = A.ruiner;
   const lose = A.players.filter((p) => !p.win && p !== r);
   return `## Кто заруинил
-**${r.hero} (${r.name})** — влияние ${r.score}/100, уверенность ${A.confidence}%. ${r.neg.slice(0, 3).map((x) => x.text).join(' ')}
+**${r.hero} (${r.name})**, влияние ${r.score}/100, уверенность ${A.confidence}%. ${r.neg.slice(0, 3).map((x) => x.text).join(' ')}
 
 ## MVP
 **${A.mvp.hero} (${A.mvp.name})**: ${A.mvp.k}/${A.mvp.d}/${A.mvp.a}, GPM ${A.mvp.gpm}. ${A.mvp.pos.slice(0, 2).map((x) => x.text).join(' ')}
@@ -623,14 +632,14 @@ function coachTip(p) {
   return {
     'Фарм ниже ожидания': 'больше времени в лесу между волнами, не ходи на драки без предметов.',
     'Слишком много смертей': 'держи байбек и ставь вард перед тем, как идти вперёд.',
-    'Накормил врагов': 'не умирай с полным кошельком — покупай предметы до выхода на карту.',
+    'Накормил врагов': 'не умирай с полным кошельком, покупай предметы до выхода на карту.',
     'Умирал в одиночку': 'не фарми одни линии без обзора, когда врагов нет на карте.',
     'Не участвовал в драках': 'смотри на мини-карту и приходи на драки раньше, используй TP.',
     'Нет сейв-предметов': 'против контроля собирай BKB, Linken или блинк раньше.',
     'Проиграл линию': 'попроси ротацию или смени линию, выбери спокойный фарм.',
     'Не давил строения': 'после выигранной драки бей вышки, а не возвращайся в лес.',
     'Мало обзора': 'покупай observer каждый раз, когда он есть в лавке.',
-    'Почти не играл': 'играть надо всю игру — даже если всё плохо.',
+    'Почти не играл': 'играть надо всю игру, даже если всё плохо.',
     'Токсичность в чате': 'mute и фокус на игре: токсичность злит и свою команду.',
   }[t] || 'держи позицию и играй от команды.';
 }
@@ -644,16 +653,42 @@ ${p.pos.length ? p.pos.slice(0, 3).map((x) => `- ${x.text}`).join('\n') : '- С�
 }
 
 function ai(el) {
-  el.innerHTML = `<div class="panel aibox"><h3>Разбор от ИИ <small>живой комментарий матча</small></h3><div id="aiout" class="ai"><button class="btn" id="aigo">${ic('sparkles')} Сгенерировать разбор</button></div></div>`;
+  el.innerHTML = `<div class="panel aibox"><h3>Разбор от ИИ <small>живой комментарий матча</small></h3><div id="aiout" class="ai"><div class="ai-intro">
+    <p>ИИ посмотрит цифры матча и расскажет простыми словами: кто заруинил, кто вытащил игру, где всё решилось и что делать каждому проигравшему в следующий раз.</p>
+    <button class="btn" id="aigo">${ic('sparkles')} Сгенерировать разбор</button></div></div></div>`;
   $('#aigo').onclick = async () => {
     const out = $('#aiout');
     out.innerHTML = '<div class="loading" style="padding:30px"><div class="spinner"></div>ИИ смотрит матч…</div>';
     try {
-      out.innerHTML = md(await askAI('match', brief()));
+      const text = await askAI('match', brief());
+      let data = null;
+      try { data = JSON.parse(text.replace(/^```(json)?|```$/g, '').trim()); } catch { /* модель ответила текстом */ }
+      out.innerHTML = data?.ruiner ? aiCards(data) : md(text);
+      fx(out);
     } catch (err) {
       out.innerHTML = aiFallbackNote(err) + md(rulesStory());
     }
   };
+}
+
+// Разбор от ИИ карточками: заголовок, руинер, герой матча, перелом, советы с портретами.
+function aiCards(d) {
+  const clean = (t) => esc(String(t || '').replace(/\s*—\s*/g, ', '));
+  const byHero = (name) => A.players.find((p) => p.hero.toLowerCase() === String(name || '').toLowerCase());
+  const r = A.ruiner;
+  const m = A.mvp;
+  return `<div class="aic">
+    ${d.headline ? `<h4 class="aic-head reveal">${clean(d.headline)}</h4>` : ''}
+    <div class="aic-grid">
+      <div class="aic-card bad reveal"><img src="${heroImg(r.heroKey)}" alt=""><div><div class="lbl">${ic('skull')} Кто заруинил</div><b>${esc(r.name)} · ${esc(r.hero)}</b><p>${clean(d.ruiner)}</p></div></div>
+      <div class="aic-card good reveal"><img src="${heroImg(m.heroKey)}" alt=""><div><div class="lbl">${ic('crown')} Кто вытащил</div><b>${esc(m.name)} · ${esc(m.hero)}</b><p>${clean(d.mvp)}</p></div></div>
+    </div>
+    ${d.turning ? `<div class="aic-turn reveal"><div class="aic-min">${clean(d.turning.minute)}</div><div><div class="lbl">${ic('swords')} Где всё решилось</div><p>${clean(d.turning.text)}</p></div></div>` : ''}
+    ${Array.isArray(d.tips) && d.tips.length ? `<div class="lbl aic-tl">${ic('cap')} Советы проигравшим на следующую игру</div><div class="aic-tips">${d.tips.map((t) => {
+      const p = byHero(t.hero);
+      return `<div class="aic-tip reveal">${p ? `<img src="${heroImg(p.heroKey)}" alt="">` : ''}<div><b>${clean(t.hero)}</b><p>${clean(t.text)}</p></div></div>`;
+    }).join('')}</div>` : ''}
+  </div>`;
 }
 
 // ---------- итог текстом и карточка «Поделиться»
@@ -663,9 +698,9 @@ function summaryText() {
   return [
     `КТО ЗАРУИНИЛ? | Матч ${A.id}`,
     `Победитель: ${teamName(A.winner)} (${A.score.radiant}:${A.score.dire}, ${mmss(A.duration)})`,
-    `Руинер: ${r.name} (${r.hero}) — руин ${r.share}%, влияние ${r.score}/100, устойчивость ${A.stability}%`,
+    `Руинер: ${r.name} (${r.hero}), руин ${r.share}%, влияние ${r.score}/100, устойчивость ${A.stability}%`,
     `Почему: ${r.neg.slice(0, 2).map((n) => n.title.toLowerCase()).join(', ') || 'хуже всех по сумме метрик'}`,
-    `MVP: ${m.name} (${m.hero}) — влияние ${m.score}`,
+    `MVP: ${m.name} (${m.hero}), влияние ${m.score}`,
     `Лучший в поражении: ${A.bestLoser.name} (${A.bestLoser.hero})`,
     `Разбор: ${location.origin}${location.pathname}#/match/${A.id}`,
   ].join('\n');

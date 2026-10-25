@@ -1,5 +1,5 @@
 // 3D-примерочная: герой из файлов Dota 2 с анимацией idle, предметы надеваются на его скелет.
-// Модели лежат в отдельном репозитории (GitHub Pages) — см. tools/build_models.py.
+// Модели лежат в отдельном репозитории (GitHub Pages), см. tools/build_models.py.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -14,7 +14,7 @@ const load = (url) => {
 };
 
 let indexP;
-// Список героев с моделями — чтобы не стучаться за манифестом, которого нет.
+// Список героев с моделями, чтобы не стучаться за манифестом, которого нет.
 const index = () => (indexP ||= fetch(`${MODELS}index.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []));
 
 export async function hasModels(hero) {
@@ -27,7 +27,7 @@ export async function hasModels(hero) {
   }
 }
 
-// Витрина: герой в стандартном облике, крутится сам, подсветка в цвет карточки (руинер — красная, MVP — золотая).
+// Витрина: герой в стандартном облике, крутится сам, подсветка в цвет карточки (руинер, красная, MVP, золотая).
 export async function showcase(el, hero, tone) {
   const man = await hasModels(hero);
   if (!man || !document.body.contains(el)) return null;
@@ -116,7 +116,7 @@ export function createViewer(el, manifest, opt = {}) {
       mixer = new THREE.AnimationMixer(hero);
       mixer.clipAction(gltf.animations[0]).play();
     }
-    // Стандартные части героя, вынесенные в отдельные модели, рисуются предметами — тело оставляем.
+    // Стандартные части героя, вынесенные в отдельные модели, рисуются предметами, тело оставляем.
     const box = new THREE.Box3().setFromObject(hero);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
@@ -151,7 +151,7 @@ export function createViewer(el, manifest, opt = {}) {
       let mesh;
       if (o.isSkinnedMesh && skeleton) {
         // Вершины предмета лежат в системе его собственных костей: оставляем его матрицы привязки,
-        // а сами кости подменяем костями героя — тогда предмет двигается вместе с анимацией героя.
+        // а сами кости подменяем костями героя, тогда предмет двигается вместе с анимацией героя.
         const sk = new THREE.Skeleton(o.skeleton.bones.map(heroBone), o.skeleton.boneInverses.map((m) => m.clone()));
         mesh = new THREE.SkinnedMesh(o.geometry, o.material);
         mesh.bind(sk, o.bindMatrix.clone());

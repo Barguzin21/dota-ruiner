@@ -77,3 +77,6 @@
 .sport .vcard:not(.mvp) .vstage .portrait.full { filter: grayscale(1) contrast(1.1); }
 .sport .nom .ic { border-radius: 3px; }
 .sport .smurf-verdict h2 { font-family: var(--display); text-transform: uppercase; }
+.sport .nomx { border-radius: 4px; }
+.sport .nomx-img img { filter: grayscale(1) contrast(1.1); }
+.sport .nomx-val, .sport .nomr { border-radius: 3px; }

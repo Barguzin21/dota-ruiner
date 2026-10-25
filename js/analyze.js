@@ -1,5 +1,5 @@
 // Разбор матча OpenDota: счёт влияния игроков, руинер, MVP, причины, эпизоды, номинации.
-// Чистые функции без DOM — проверяются в test.mjs.
+// Чистые функции без DOM, проверяются в test.mjs.
 
 const MIN = 60;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -19,7 +19,7 @@ export const METRIC_RU = {
 
 // Предметы, которые спасают кора от контроля в поздней игре.
 const SAVE_ITEMS = ['black_king_bar', 'aeon_disk', 'sphere', 'manta', 'satanic', 'abyssal_blade', 'disperser', 'pipe', 'lotus_orb', 'cyclone', 'wind_waker', 'heavens_halberd', 'ghost', 'glimmer_cape', 'force_staff', 'hurricane_pike', 'blink', 'overwhelming_blink', 'swift_blink', 'arcane_blink', 'mjollnir', 'harpoon', 'bloodstone', 'refresher', 'solar_crest', 'pavise'];
-// Герои со своим «BKB» или уходом от контроля в способностях — им сейв-предмет не обязателен.
+// Герои со своим «BKB» или уходом от контроля в способностях, им сейв-предмет не обязателен.
 const SELF_SAVE = new Set(['life_stealer', 'juggernaut', 'omniknight', 'slark', 'weaver', 'ember_spirit', 'void_spirit', 'puck', 'morphling', 'antimage',
   'queenofpain', 'storm_spirit', 'faceless_void', 'templar_assassin', 'abaddon', 'skeleton_king', 'naga_siren', 'pangolier', 'nyx_assassin', 'bounty_hunter',
   'clinkz', 'riki', 'phantom_lancer', 'monkey_king', 'earth_spirit', 'marci', 'hoodwink', 'sand_king', 'meepo', 'troll_warlord', 'huskar', 'oracle', 'dazzle', 'kez', 'muerta', 'medusa', 'spectre', 'brewmaster']);
@@ -40,7 +40,7 @@ function rel(v, expected) {
 }
 
 function deathsInFights(p, fights, idx) {
-  // Смерти, которые попали в окно драки, считаются «в драке», остальные — одиночные.
+  // Смерти, которые попали в окно драки, считаются «в драке», остальные, одиночные.
   const out = { fight: 0, solo: [] };
   for (const d of p.deaths_log || []) {
     const inFight = fights.some((f) => d.time >= f.start - 3 && d.time <= f.end + 3 && f.players[idx]?.deaths);
@@ -78,7 +78,7 @@ export function analyze(m, consts = {}) {
     const g = { radiant: 0, dire: 0 };
     f.players.forEach((fp, i) => { if (m.players[i]) g[team(m.players[i])] += fp.gold_delta || 0; });
     const deaths = f.players.reduce((s, fp) => s + (fp.deaths || 0), 0);
-    // первая смерть в драке — по логам смертей игроков
+    // первая смерть в драке, по логам смертей игроков
     let first = null;
     m.players.forEach((p, i) => {
       for (const d of p.deaths_log || []) if (d.time >= f.start - 2 && d.time <= f.end + 2 && (!first || d.time < first.t)) first = { i, t: d.time };
@@ -139,7 +139,7 @@ export function analyze(m, consts = {}) {
       lh: pct(p, 'last_hits_per_min') ?? rel(p.last_hits / mins, teamExp.lh),
       tower: pct(p, 'tower_damage') ?? rel(p.tower_damage || 0, sup ? 400 : 2500),
       kp: clamp((kp - 0.25) / 0.5, 0, 1),
-      // линия: половина — эффективность OpenDota, половина — золото против соперника к 10:00
+      // линия: половина, эффективность OpenDota, половина, золото против соперника к 10:00
       lane: avg([p.lane_efficiency_pct != null ? clamp(p.lane_efficiency_pct / 100, 0, 1) : null, laneDiff != null ? clamp(0.5 + laneDiff / (sup ? 2400 : 3000), 0, 1) : null]) ?? 0.5,
       vision: clamp((obs + sen * 0.6) / Math.max(4, mins * (role(p) === 5 ? 0.45 : 0.3)), 0, 1),
       utility: clamp(Math.max(pct(p, 'hero_healing_per_min') ?? 0, (p.stuns || 0) / Math.max(1, mins * 1.2), (p.camps_stacked || 0) / 8), 0, 1),
@@ -158,31 +158,31 @@ export function analyze(m, consts = {}) {
     // --- негатив
     if (p.leaver_status > 1 || p.abandons) {
       score = Math.min(score, 3);
-      add(neg, 100, 'Покинул игру', 'Игрок вышел из матча — команда доигрывала вчетвером.');
+      add(neg, 100, 'Покинул игру', 'Игрок вышел из матча, команда доигрывала вчетвером.');
     }
-    if (!sup && m01.farm < 0.25) add(neg, 30 * (0.3 - m01.farm) * 4, 'Фарм ниже ожидания', `GPM ${p.gold_per_min} — хуже, чем у ${Math.round((1 - m01.farm) * 100)}% игроков на этом герое.`);
+    if (!sup && m01.farm < 0.25) add(neg, 30 * (0.3 - m01.farm) * 4, 'Фарм ниже ожидания', `GPM ${p.gold_per_min}, хуже, чем у ${Math.round((1 - m01.farm) * 100)}% игроков на этом герое.`);
     if (p.deaths >= 8 || m01.deaths < 0.2) add(neg, 8 + p.deaths * 2, 'Слишком много смертей', `${p.deaths} смертей, мёртвым ${Math.round(deadShare * 100)}% игры.`);
     if (fed > Math.max(3500, mins * 130)) add(neg, fed / 300, 'Накормил врагов', `Враги получили ${fmt(fed)} золота за его смерти, сам потерял ${fmt(lost)}.`);
-    if (df.solo.length >= 3 && df.solo.length >= p.deaths * 0.4) add(neg, df.solo.length * 4, 'Умирал в одиночку', `${df.solo.length} смертей вне командных драк — пойман без команды.`);
-    if (kills[t] >= 10 && kp < 0.35) add(neg, (0.4 - kp) * 60, 'Не участвовал в драках', `KP ${Math.round(kp * 100)}% — команда дралась без него.`);
-    if (!sup && mins > 30 && !SELF_SAVE.has(heroKey) && ![...allItems].some((k) => SAVE_ITEMS.includes(k))) add(neg, 10, 'Нет сейв-предметов', 'К поздней игре нет BKB, Aeon Disk, Linken или мобильности — лёгкая цель для контроля.');
+    if (df.solo.length >= 3 && df.solo.length >= p.deaths * 0.4) add(neg, df.solo.length * 4, 'Умирал в одиночку', `${df.solo.length} смертей вне командных драк, пойман без команды.`);
+    if (kills[t] >= 10 && kp < 0.35) add(neg, (0.4 - kp) * 60, 'Не участвовал в драках', `KP ${Math.round(kp * 100)}%, команда дралась без него.`);
+    if (!sup && mins > 30 && !SELF_SAVE.has(heroKey) && ![...allItems].some((k) => SAVE_ITEMS.includes(k))) add(neg, 10, 'Нет сейв-предметов', 'К поздней игре нет BKB, Aeon Disk, Linken или мобильности, лёгкая цель для контроля.');
     if (!sup && laneDiff != null && laneDiff < -1200) add(neg, 8 + Math.min(14, -laneDiff / 250), 'Проиграл линию', `−${fmt(-laneDiff)} золота к 10:00 против ${laneOpp}${p.lane_efficiency_pct != null ? `, эффективность линии ${p.lane_efficiency_pct}%` : ''}.`);
     else if (!sup && role(p) <= 2 && (p.lane_efficiency_pct ?? 100) < 45) add(neg, 12, 'Проиграл линию', `Эффективность на линии ${p.lane_efficiency_pct}% к 10-й минуте.`);
     if (objDeaths >= 3 && objDeaths >= p.deaths * 0.4) add(neg, 6 + objDeaths * 4, 'Смерти стоили зданий', `${objDeaths} раз после его смерти враги сразу забирали вышку, казармы или Рошана.`);
     if (throwDeaths >= 1) add(neg, 10 + throwDeaths * 6, 'Слил преимущество', `${throwDeaths} смерт${throwDeaths === 1 ? 'ь' : 'и'} при перевесе 5k+ золота, после которых команда потеряла 4k+.`);
-    if (firstLost >= 2) add(neg, 5 + firstLost * 4, 'Первым падал в драках', `В ${firstLost} проигранных драках умер первым — команда дралась вчетвером.`);
+    if (firstLost >= 2) add(neg, 5 + firstLost * 4, 'Первым падал в драках', `В ${firstLost} проигранных драках умер первым, команда дралась вчетвером.`);
     if (!sup && missedLost >= 3) add(neg, 4 + missedLost * 3, 'Пропускал драки', `Не было в ${missedLost} из ${bigFights.filter((x) => x.won !== t).length} проигранных командных драк.`);
-    if (!sup && mins > 20 && p.deaths >= 3 && avgLost > 350) add(neg, 6, 'Умирал с деньгами', `Терял в среднем ${fmt(avgLost)} золота за смерть — деньги лучше тратить до выхода на карту.`);
+    if (!sup && mins > 20 && p.deaths >= 3 && avgLost > 350) add(neg, 6, 'Умирал с деньгами', `Терял в среднем ${fmt(avgLost)} золота за смерть, деньги лучше тратить до выхода на карту.`);
     if (!sup && mins > 25 && (p.tower_damage || 0) < 500) add(neg, 8, 'Не давил строения', `${fmt(p.tower_damage || 0)} урона по строениям за ${Math.round(mins)} минут.`);
     if (sup && obs < mins / 6 && parsed) add(neg, 12, 'Мало обзора', `${obs} observer и ${sen} sentry за ${Math.round(mins)} минут.`);
-    if (p.actions_per_min && p.actions_per_min < 50 && parsed) add(neg, 15, 'Почти не играл', `APM ${p.actions_per_min} — похоже на AFK или игру «в одну кнопку».`);
+    if (p.actions_per_min && p.actions_per_min < 50 && parsed) add(neg, 15, 'Почти не играл', `APM ${p.actions_per_min}, похоже на AFK или игру «в одну кнопку».`);
     if (toxic >= 2) add(neg, 4 + toxic, 'Токсичность в чате', `${toxic} оскорбительных сообщений.`);
-    if ((p.buyback_count || 0) >= 2 && !p.win) add(neg, 4, 'Дорогие выкупы', `${p.buyback_count} выкупа — команда всё равно проиграла.`);
+    if ((p.buyback_count || 0) >= 2 && !p.win) add(neg, 4, 'Дорогие выкупы', `${p.buyback_count} выкупа, команда всё равно проиграла.`);
 
     // --- позитив
     if (dmgShare > 0.3) add(pos, dmgShare * 40, 'Главный источник урона', `${Math.round(dmgShare * 100)}% урона команды по героям.`);
     if (kp > 0.7) add(pos, kp * 15, 'Был в каждой драке', `KP ${Math.round(kp * 100)}%.`);
-    if (m01.farm > 0.75 && !sup) add(pos, 12, 'Отличный фарм', `GPM ${p.gold_per_min} — лучше ${Math.round(m01.farm * 100)}% игроков на герое.`);
+    if (m01.farm > 0.75 && !sup) add(pos, 12, 'Отличный фарм', `GPM ${p.gold_per_min}, лучше ${Math.round(m01.farm * 100)}% игроков на герое.`);
     if (p.deaths <= 2 && mins > 20) add(pos, 12, 'Почти не умирал', `${p.deaths} смертей за ${Math.round(mins)} минут.`);
     if (obs + sen >= mins / 2.5 && sup) add(pos, 10, 'Держал обзор', `${obs} observer + ${sen} sentry.`);
     if ((p.hero_healing || 0) > 5000) add(pos, 8, 'Лечил команду', `${fmt(p.hero_healing)} хила по союзникам.`);
@@ -194,7 +194,7 @@ export function analyze(m, consts = {}) {
     if (fightTeamDmg && fightDmg / fightTeamDmg > 0.32) add(pos, 10, 'Решал драки', `${Math.round(fightDmg / fightTeamDmg * 100)}% урона команды в больших драках.`);
     if (bigFights.length >= 4 && myFights.length === bigFights.length) add(pos, 6, 'Не пропустил ни одной драки', `Был во всех ${bigFights.length} больших драках.`);
 
-    // Токсичность метриками не ловится — отдельный небольшой штраф.
+    // Токсичность метриками не ловится, отдельный небольшой штраф.
     score -= Math.min(10, toxic * 2);
     score = clamp(score, 0, 100);
 
@@ -225,7 +225,7 @@ export function analyze(m, consts = {}) {
   const ruiner = losers[0];
   const nearRuiner = losers[1];
   const gap = nearRuiner.score - ruiner.score;
-  // Доля руина: кто сколько «весит» в поражении; у победителей — доля вклада.
+  // Доля руина: кто сколько «весит» в поражении; у победителей, доля вклада.
   const share = (arr, f) => { const tot = sum(arr.map(f)) || 1; arr.forEach((p) => (p.share = Math.round(f(p) / tot * 100))); };
   share(losers, (p) => (100 - p.score) ** 2);
   share(winners, (p) => p.score ** 2);
@@ -349,7 +349,7 @@ function episodes(m, players, fights, ruiner) {
       const victim = players.find((p) => p.slot === o.victim_player_slot) || players[o.key];
       out.push({ t: o.time, kind: 'fb', title: 'Первая кровь', text: `${killer?.hero || '?'} убивает ${victim?.hero || '?'}`, p: victim });
     } else if (o.type === 'building_kill' && /tower|rax|fort/.test(o.key)) {
-      if (/tower1/.test(o.key)) continue; // первые вышки — шум
+      if (/tower1/.test(o.key)) continue; // первые вышки, шум
       out.push({ t: o.time, kind: 'building', title: 'Пало строение', text: BUILD_RU(o.key), team: o.key.includes('goodguys') ? 'radiant' : 'dire' });
     } else if (o.type === 'CHAT_MESSAGE_ROSHAN_KILL') {
       out.push({ t: o.time, kind: 'rosh', title: 'Рошан убит', text: o.team === 2 ? 'Силы Света' : 'Силы Тьмы' });
@@ -416,8 +416,8 @@ export function defend(a, p) {
   if (lowKp.length) out.push(`Участие в драках выше, чем у ${lowKp.map((q) => q.hero).join(', ')}.`);
   if (p.support) out.push('Саппорт: маленький фарм для него нормален, модель это учитывает.');
   const enemyCore = a.players.filter((q) => q.team !== p.team).sort((x, y) => y.nw - x.nw)[0];
-  if (enemyCore && enemyCore.nw > p.nw * 2.2) out.push(`У врага был зафармленный ${enemyCore.hero} (${fmt(enemyCore.nw)} NW) — играть против него тяжело любому.`);
-  if (a.gap < 6) out.push(`Разрыв со следующим игроком всего ${a.gap} балла — заруинила скорее вся команда.`);
+  if (enemyCore && enemyCore.nw > p.nw * 2.2) out.push(`У врага был зафармленный ${enemyCore.hero} (${fmt(enemyCore.nw)} NW), играть против него тяжело любому.`);
+  if (a.gap < 6) out.push(`Разрыв со следующим игроком всего ${a.gap} балла, заруинила скорее вся команда.`);
   if (!out.length) out.push('Оправдать сложно: ни одного сильного сигнала в его пользу.');
   return out;
 }
