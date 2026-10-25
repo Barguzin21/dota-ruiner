@@ -17,8 +17,11 @@ let indexP;
 // Список героев с моделями, чтобы не стучаться за манифестом, которого нет.
 const index = () => (indexP ||= fetch(`${MODELS}index.json`).then((r) => (r.ok ? r.json() : [])).catch(() => []));
 
+// Io (wisp) в игре нарисован частицами, модель под ними просто шар: показываем картинку.
+const NO_3D = new Set(['wisp']);
+
 export async function hasModels(hero) {
-  if (!(await index()).includes(hero)) return null;
+  if (NO_3D.has(hero) || !(await index()).includes(hero)) return null;
   try {
     const r = await fetch(`${MODELS}${hero}/manifest.json`);
     return r.ok ? r.json() : null;
