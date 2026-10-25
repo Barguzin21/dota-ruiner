@@ -2,7 +2,9 @@ import { cors } from './_cors.js';
 
 // ИИ-комментарии: разбор матча, советы игроку, подбор сетов. Бесплатный уровень Gemini.
 // Нужен env GEMINI_API_KEY; без него отвечает 503, и сайт показывает разбор по правилам.
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+// Алиас сам переезжает на свежую flash-модель: конкретные версии Google закрывает для новых ключей.
+const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+const FALLBACK = 'gemini-flash-lite-latest';
 
 const PROMPTS = {
   match: 'Ты — опытный аналитик Dota 2 и немного стендап-комик. По данным матча напиши разбор на русском: ' +
@@ -29,20 +31,27 @@ export default async function handler(req, res) {
   const payload = JSON.stringify(data || {});
   if (!prompt || payload.length > 60000) return res.status(400).json({ error: 'bad request' });
 
-  try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: `${prompt}\n\nДанные:\n${payload}` }] }],
-        generationConfig: { temperature: kind === 'sets' ? 0.6 : 0.85, maxOutputTokens: 2048, ...(kind === 'sets' ? { responseMimeType: 'application/json' } : {}) },
-      }),
-    });
-    const d = await r.json();
-    if (!r.ok) return res.status(502).json({ error: d.error?.message || `gemini ${r.status}` });
-    const text = d.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
-    res.status(200).json({ text });
-  } catch (e) {
-    res.status(502).json({ error: String(e.message || e) });
+  const body = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ text: `${prompt}\n\nДанные:\n${payload}` }] }],
+    generationConfig: { temperature: kind === 'sets' ? 0.6 : 0.85, maxOutputTokens: 4096, ...(kind === 'sets' ? { responseMimeType: 'application/json' } : {}) },
+  });
+  let error = 'gemini недоступен';
+  // Бесплатный уровень часто отвечает «перегружено» (429/503) — тогда пробуем облегчённую модель.
+  for (const model of [MODEL, FALLBACK]) {
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body,
+      });
+      const d = await r.json();
+      if (r.ok) {
+        const text = d.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
+        return res.status(200).json({ text });
+      }
+      error = d.error?.message || `gemini ${r.status}`;
+      if (r.status !== 429 && r.status < 500) break;
+    } catch (e) {
+      error = String(e.message || e);
+    }
   }
+  res.status(502).json({ error });
 }
