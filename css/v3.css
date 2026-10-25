@@ -146,7 +146,7 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 /* шапка и меню разделов уезжают при прокрутке вниз */
 .top, .tabs { transition: transform .3s cubic-bezier(.2, .7, .2, 1), top .3s cubic-bezier(.2, .7, .2, 1); }
 .bars-hidden .top { transform: translateY(-110%); }
-.bars-hidden .tabs { transform: translateY(calc(-100% - 70px)); }
+.bars-hidden.tabs-stuck .tabs { transform: translateY(calc(-100% - 70px)); }
 .tabs { background: rgba(10, 11, 16, .94); }
 
 /* 2D/3D */

@@ -219,11 +219,17 @@ themeBtn.onclick = () => {
 };
 paintTheme();
 // Шапка и меню разделов прячутся при прокрутке вниз и возвращаются при прокрутке вверх.
+// Порог 40 px в одну сторону: плавная прокрутка даёт мелкие откаты назад, без порога шапка мигает.
 let lastY = scrollY;
+let anchorY = scrollY;
 addEventListener('scroll', () => {
   const y = scrollY;
-  if (Math.abs(y - lastY) < 8) return;
-  document.body.classList.toggle('bars-hidden', y > lastY && y > 160);
+  if ((y > lastY) !== (lastY > anchorY)) anchorY = lastY; // сменилось направление — новая точка отсчёта
+  if (y < 160) document.body.classList.remove('bars-hidden');
+  else if (Math.abs(y - anchorY) > 40) document.body.classList.toggle('bars-hidden', y > anchorY);
+  // меню разделов прячем, только когда оно уже прилипло к верху, а не стоит на своём месте в странице
+  const tabs = document.querySelector('.tabs');
+  document.body.classList.toggle('tabs-stuck', !!tabs && tabs.getBoundingClientRect().top <= 72);
   lastY = y;
 }, { passive: true });
 

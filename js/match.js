@@ -179,10 +179,19 @@ function draw(app) {
 // Живые герои в карточках вердикта (3D) или полноростовой рендер (2D) — переключатель запоминается.
 async function mount3d(root) {
   const verdict = $('.verdict', root);
+  const viewers = [];
+  // Прячем/показываем холст и картинку прямо из скрипта: старый CSS из кэша не должен давать двух героев сразу.
   const paint = () => {
     const flat = store.get('view', '3d') === '2d';
     verdict.classList.toggle('flat', flat);
     $$('.viewsw button', root).forEach((b) => b.classList.toggle('on', b.dataset.view === (flat ? '2d' : '3d')));
+    for (const st of $$('[data-hero3d]', root)) {
+      const live = st.classList.contains('live') && !flat;
+      for (const c of st.querySelectorAll('canvas')) c.style.display = flat ? 'none' : '';
+      const img = st.querySelector('.portrait');
+      if (img) img.style.opacity = live ? '0' : '1';
+    }
+    viewers.forEach((v) => v?.pause?.(flat));
     return flat;
   };
   let started = false;
@@ -190,7 +199,9 @@ async function mount3d(root) {
     if (started) return;
     started = true;
     const v3 = await import('./viewer3d.js').catch(() => null);
-    if (v3) for (const el of $$('[data-hero3d]', root)) v3.showcase(el, el.dataset.hero3d, el.dataset.tone);
+    if (!v3) return;
+    await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
+    paint(); // герой мог догрузиться уже после переключения в 2D
   };
   $$('.viewsw button', root).forEach((b) => (b.onclick = () => { store.set('view', b.dataset.view); if (!paint()) start(); }));
   if (!paint()) start();

@@ -95,8 +95,9 @@ export function createViewer(el, manifest, opt = {}) {
   const ro = new ResizeObserver(resize);
   ro.observe(el);
 
+  let paused = false;
   renderer.setAnimationLoop(() => {
-    if (!alive) return;
+    if (!alive || paused) return;
     mixer?.update(clock.getDelta());
     controls.update();
     renderer.render(scene, camera);
@@ -192,6 +193,7 @@ export function createViewer(el, manifest, opt = {}) {
       await sync();
     },
     snapshot: () => renderer.domElement.toDataURL('image/png'),
+    pause(v) { paused = v; if (!v) clock.getDelta(); },
     resetView() { controls.autoRotate = true; },
     dispose() {
       alive = false;
