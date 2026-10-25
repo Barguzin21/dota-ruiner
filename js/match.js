@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610260220';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202610260220';
-import { coachSection, me, itemTimings } from './coach.js?v=202610260220';
-import { icon as ic } from './icons.js?v=202610260220';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610260225';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202610260225';
+import { coachSection, me, itemTimings } from './coach.js?v=202610260225';
+import { icon as ic } from './icons.js?v=202610260225';
 
 let A; // текущий разбор
 let C; // справочники
@@ -199,7 +199,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202610260220').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610260225').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -800,7 +800,7 @@ async function drawCard() {
   const x = cv.getContext('2d');
   await document.fonts.ready;
   const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
-  const [hero, mvp] = await Promise.all([load(heroFull(r.heroKey)), load(heroImg(A.mvp.heroKey))]);
+  const [hero, mvp, lmvp] = await Promise.all([load(heroFull(r.heroKey)), load(heroImg(A.mvp.heroKey)), load(heroImg(A.bestLoser.heroKey))]);
 
   // фон: тёмный с красным свечением за героем и тонкой сеткой
   x.fillStyle = sport ? '#0d0e10' : '#0a0b10';
@@ -814,22 +814,18 @@ async function drawCard() {
   for (let i = 0; i < S; i += 54) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, S); x.moveTo(0, i); x.lineTo(S, i); x.stroke(); }
 
   if (hero) {
-    // герой вписан в правую зону 370x600 под заголовком и прижат к низу: слева текст, на него заходить нельзя
-    const k = Math.min(370 / hero.width, 600 / hero.height);
-    const w = hero.width * k;
-    const h = hero.height * k;
+    // герой крупно справа: высота 760 (голова ниже заголовка), низом к краю; обрезаем по x=640, чтобы широкое оружие не наезжало на текст слева
+    const h = 760;
+    const w = hero.width * (h / hero.height);
     x.save();
+    x.beginPath();
+    x.rect(640, 0, S - 640, S);
+    x.clip();
     if (sport) x.filter = 'grayscale(1) contrast(1.1)';
     x.shadowColor = 'rgba(0,0,0,.7)';
     x.shadowBlur = 40;
-    x.drawImage(hero, S - 40 - 370 + (370 - w) / 2, S - 56 - h, w, h);
+    x.drawImage(hero, 860 - w / 2, S - 36 - h, w, h);
     x.restore();
-    // затемнение слева, чтобы текст читался поверх героя
-    const fade = x.createLinearGradient(0, 0, 720, 0);
-    fade.addColorStop(0.45, sport ? 'rgba(13,14,16,.96)' : 'rgba(10,11,16,.95)');
-    fade.addColorStop(1, 'rgba(10,11,16,0)');
-    x.fillStyle = fade;
-    x.fillRect(0, 0, 760, S);
   }
 
   // шапка
@@ -894,19 +890,21 @@ async function drawCard() {
   x.font = '600 24px Inter';
   r.neg.slice(0, 2).forEach((n, i) => {
     x.fillStyle = '#ff3b3b';
-    x.fillRect(64, 846 + i * 46, 6, 28);
+    x.fillRect(64, 828 + i * 42, 6, 28);
     x.fillStyle = '#e8e8e4';
-    x.fillText(clip(x, n.title, 560), 86, 869 + i * 46);
+    x.fillText(clip(x, n.title, 540), 86, 851 + i * 42);
   });
 
-  // MVP и адрес
-  if (mvp) { x.save(); roundRect(x, 64, 960, 96, 54, 8); x.clip(); x.drawImage(mvp, 64, 960, 96, 54); x.restore(); }
-  x.font = `800 26px ${D}`;
-  x.fillStyle = '#ffc23d';
-  x.fillText('MVP', 176, 986);
-  x.font = '600 24px Inter';
-  x.fillStyle = '#e8e8e4';
-  x.fillText(clip(x, `${A.mvp.name} · ${A.mvp.hero}`, 420), 176, 1014);
+  // MVP победителей и проигравших, друг под другом
+  [[A.mvp, mvp, 'MVP ПОБЕДИТЕЛЕЙ', '#ffc23d', 912], [A.bestLoser, lmvp, 'MVP ПРОИГРАВШИХ', '#8fb8ff', 972]].forEach(([p, img, label, color, by]) => {
+    if (img) { x.save(); roundRect(x, 64, by, 84, 47, 7); x.clip(); x.drawImage(img, 64, by, 84, 47); x.restore(); }
+    x.font = `800 18px ${D}`;
+    x.fillStyle = color;
+    x.fillText(label, 164, by + 19);
+    x.font = '600 21px Inter';
+    x.fillStyle = '#e8e8e4';
+    x.fillText(clip(x, `${p.name} · ${p.hero}`, 440), 164, by + 44);
+  });
   x.font = '500 20px Inter';
   x.fillStyle = '#6f7480';
   x.textAlign = 'right';
