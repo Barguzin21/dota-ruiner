@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610252126';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202610252126';
-import { coachSection, me, itemTimings } from './coach.js?v=202610252126';
-import { icon as ic } from './icons.js?v=202610252126';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610252129';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202610252129';
+import { coachSection, me, itemTimings } from './coach.js?v=202610252129';
+import { icon as ic } from './icons.js?v=202610252129';
 
 let A; // текущий разбор
 let C; // справочники
@@ -201,7 +201,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202610252126').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610252129').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -484,14 +484,20 @@ function map(el) {
 function episodes(el) {
   const kinds = { all: 'Все', ruiner: 'Руинер', fight: 'Драки', building: 'Здания', rosh: 'Рошан' };
   const icon = { fb: ic('drop'), building: ic('tower'), rosh: ic('crown'), fight: ic('swords'), solo: ic('skull') };
+  const SHOW = 6; // сколько эпизодов видно в свёрнутом виде
   let f = 'all';
+  let open = false;
   const render = () => {
     const eps = A.episodes.filter((e) => f === 'all' || (f === 'ruiner' ? e.ruiner : e.kind === f));
+    const shown = open ? eps : eps.slice(0, SHOW);
     el.innerHTML = `<div class="panel"><h3>Ключевые эпизоды</h3>
       <div class="filters">${Object.entries(kinds).map(([k, t]) => `<button data-f="${k}" class="${k === f ? 'on' : ''}">${t}</button>`).join('')}</div>
-      <div class="eps">${eps.map((e) => `<div class="ep ${e.ruiner ? 'ruiner' : e.kind}"><div class="tm">${mmss(e.t)}</div><div>${icon[e.kind] || '•'}</div>
-        <div><b>${esc(e.title)}</b><span>${esc(e.text)}</span></div></div>`).join('') || '<div class="empty">Нет эпизодов (реплей не разобран).</div>'}</div></div>`;
-    $$('[data-f]', el).forEach((b) => (b.onclick = () => { f = b.dataset.f; render(); }));
+      <div class="eps">${shown.map((e) => `<div class="ep ${e.ruiner ? 'ruiner' : e.kind}"><div class="tm">${mmss(e.t)}</div><div>${icon[e.kind] || '•'}</div>
+        <div><b>${esc(e.title)}</b><span>${esc(e.text)}</span></div></div>`).join('') || '<div class="empty">Нет эпизодов (реплей не разобран).</div>'}</div>
+      ${eps.length > SHOW ? `<button class="btn ghost epmore" data-more>${open ? 'Свернуть' : `Показать все эпизоды (${eps.length})`}</button>` : ''}</div>`;
+    $$('[data-f]', el).forEach((b) => (b.onclick = () => { f = b.dataset.f; open = false; render(); }));
+    const more = $('[data-more]', el);
+    if (more) more.onclick = () => { open = !open; render(); if (!open) el.scrollIntoView({ block: 'start' }); };
   };
   render();
 }
