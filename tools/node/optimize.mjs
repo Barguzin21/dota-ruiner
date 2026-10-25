@@ -25,12 +25,17 @@ for (const [src, dst, size] of jobs) {
     }
     // морф-цели (лицо, ткань) в примерочной не играют, а весят до 20 МБ на предмет
     for (const mesh of root.listMeshes()) {
-      for (const prim of mesh.listPrimitives()) for (const t of prim.listTargets()) prim.removeTarget(t);
+      for (const prim of mesh.listPrimitives()) for (const t of prim.listTargets()) { prim.removeTarget(t); t.dispose(); }
       mesh.setWeights([]);
     }
     // герою нужна одна стойка, предметам анимации не нужны вовсе — они двигаются костями героя
     const keep = dst.endsWith('hero.glb') ? 1 : 0;
-    for (const a of root.listAnimations().slice(keep)) a.dispose();
+    // dispose() анимации не трогает её сэмплеры — их данные оставались в файле (до 25 МБ мусора)
+    for (const a of root.listAnimations().slice(keep)) {
+      for (const c of a.listChannels()) c.dispose();
+      for (const sm of a.listSamplers()) { sm.getInput()?.dispose(); sm.getOutput()?.dispose(); sm.dispose(); }
+      a.dispose();
+    }
     await doc.transform(
       prune({ keepAttributes: true, keepLeaves: true }),
       dedup(),
