@@ -1,0 +1,48 @@
+/* v3: одна страница с разделами + 3D-оформление */
+.msec { position: relative; margin: 34px 0 10px; scroll-margin-top: 120px; perspective: 1200px; }
+.msec-t { font: 900 clamp(22px, 3vw, 34px)/1 var(--display); margin: 0 0 14px 4px; letter-spacing: -.01em; position: relative; z-index: 1; }
+/* огромный объёмный номер раздела: слои тени дают «экструзию» */
+.msec-n {
+  position: absolute; right: 0; top: -38px; z-index: 0; pointer-events: none; user-select: none;
+  font: 900 clamp(70px, 11vw, 150px)/1 var(--display); color: rgba(255, 255, 255, .035);
+  -webkit-text-stroke: 1px rgba(255, 255, 255, .09);
+  text-shadow: 1px 1px 0 rgba(255, 59, 59, .08), 2px 2px 0 rgba(255, 59, 59, .07), 3px 3px 0 rgba(255, 59, 59, .06), 4px 4px 0 rgba(255, 59, 59, .05), 6px 6px 0 rgba(255, 59, 59, .04), 10px 12px 30px rgba(0, 0, 0, .5);
+  transform: rotateY(-24deg) rotateX(8deg); transform-origin: right center;
+}
+.msec .panel > h3 { font-size: 0; margin: 0 0 10px; }
+.msec .panel > h3 small { font-size: 13px; margin: 0; }
+.msec .panel > h3:not(:has(small)) { display: none; }
+#sec-players .panel:first-child { margin-top: 0; }
+
+/* 3D-появление: панели выкатываются из глубины с наклоном */
+.msec .panel.reveal, .msec .lane.reveal { transform-origin: 50% 0; transform: rotateX(14deg) translateZ(-40px); transition: opacity .7s, translate .7s, transform .8s cubic-bezier(.2, .7, .2, 1); }
+.msec .panel.reveal.in, .msec .lane.reveal.in { transform: none; }
+
+/* навигация по разделам: закреплена, текущий раздел подсвечен */
+.tabs { z-index: 15; }
+.tabs button { scroll-margin: 0 40px; }
+
+/* объёмная надпись «ЗАРУИНИЛ» */
+.vlabel { text-shadow: 0 1px 0 #c92525, 0 2px 0 #b51f1f, 0 3px 0 #a11a1a, 0 4px 0 #8c1515, 0 5px 0 #761111, 0 8px 18px rgba(255, 59, 59, .45), 0 0 50px rgba(255, 59, 59, .35); }
+.vcard.mvp .vlabel { text-shadow: 0 1px 0 #d89b1d, 0 2px 0 #c28617, 0 3px 0 #a87112, 0 4px 0 #8d5d0e, 0 7px 16px rgba(255, 194, 61, .4); }
+
+/* вращающаяся 3D-эмблема (кольца, как гироскоп) за карточкой руинера */
+.vcard { overflow: hidden; }
+.vcard:not(.mvp)::after { content: none; }
+.gyro { position: absolute; right: -60px; bottom: -70px; width: 260px; height: 260px; pointer-events: none; perspective: 800px; opacity: .55; z-index: 0; }
+.gyro i { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(255, 59, 59, .35); box-shadow: 0 0 30px rgba(255, 59, 59, .25), inset 0 0 30px rgba(255, 59, 59, .15); transform-style: preserve-3d; }
+.gyro i:nth-child(1) { animation: gyro1 14s linear infinite; }
+.gyro i:nth-child(2) { inset: 26px; border-color: rgba(255, 194, 61, .3); animation: gyro2 11s linear infinite; }
+.gyro i:nth-child(3) { inset: 56px; border-color: rgba(61, 139, 255, .3); animation: gyro3 9s linear infinite; }
+@keyframes gyro1 { to { transform: rotateX(70deg) rotateZ(360deg); } }
+@keyframes gyro2 { from { transform: rotateY(60deg); } to { transform: rotateY(60deg) rotateZ(-360deg); } }
+@keyframes gyro3 { from { transform: rotateX(-50deg) rotateY(30deg); } to { transform: rotateX(-50deg) rotateY(30deg) rotateZ(360deg); } }
+.vstage, .vbody { position: relative; z-index: 1; }
+
+/* карточки номинаций — переворот при наведении */
+.nom { transition: transform .5s cubic-bezier(.2, .7, .2, 1), box-shadow .3s; transform-style: preserve-3d; }
+.nom:hover { transform: perspective(600px) rotateY(-10deg) rotateX(6deg) translateZ(10px); box-shadow: 0 20px 40px -15px rgba(0, 0, 0, .7); }
+.nom .ic { transform: translateZ(30px); filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .5)); }
+
+@media (prefers-reduced-motion: reduce) { .gyro i { animation: none; } .msec .panel.reveal { transform: none; } }
+@media (max-width: 560px) { .msec-n { font-size: 64px; top: -20px; } .gyro { width: 180px; height: 180px; } }

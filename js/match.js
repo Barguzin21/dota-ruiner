@@ -90,7 +90,7 @@ function draw(app) {
     </div>
     ${A.parsed ? '' : '<div class="banner" id="parse"><div class="spinner" style="width:22px;height:22px;margin:0;border-width:2px"></div><span>Реплей ещё не разобран — заказали разбор у OpenDota. Пока показываем анализ по общей статистике.</span></div>'}
     <section class="verdict">
-      <div class="vcard tilt reveal">
+      <div class="vcard tilt reveal"><div class="gyro" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="vstage" data-hero3d="${r.heroKey}" data-tone="red"><img class="portrait" src="${portrait(r, 1)}" alt="${esc(r.hero)}"></div>
         <div class="vbody">
           <div class="vlabel glitch" data-text="ЗАРУИНИЛ">ЗАРУИНИЛ</div>
@@ -133,7 +133,8 @@ function draw(app) {
     </div>
     <div id="extra"></div>
     <nav class="tabs"><div class="tabs-in">${TABS.map(([k, t], i) => `<button data-tab="${k}" class="${i ? '' : 'on'}">${t}</button>`).join('')}<i class="tab-ind"></i></div></nav>
-    <div id="tab"></div>`;
+    ${TABS.map(([k, t], i) => `<section class="msec" id="sec-${k}"><div class="msec-n" aria-hidden="true">${String(i + 1).padStart(2, '0')}</div>
+      <h2 class="msec-t">${t}</h2><div class="msec-b" data-sec="${k}"></div></section>`).join('')}`;
 
   const moveInd = (b) => {
     const ind = $('.tab-ind', app);
@@ -141,14 +142,31 @@ function draw(app) {
     ind.style.width = `${b.offsetWidth}px`;
     ind.style.transform = `translateX(${b.offsetLeft}px)`;
   };
-  $$('[data-tab]', app).forEach((b) => (b.onclick = () => {
+  const mark = (k) => {
+    const b = $(`[data-tab="${k}"]`, app);
     $$('[data-tab]', app).forEach((x) => x.classList.toggle('on', x === b));
     moveInd(b);
-    showTab(b.dataset.tab);
-  }));
+    b?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  };
+  // Навигация = прокрутка к разделу; при прокрутке подсвечиваем текущий.
+  $$('[data-tab]', app).forEach((b) => (b.onclick = () => $(`#sec-${b.dataset.tab}`).scrollIntoView({ behavior: 'smooth' })));
   requestAnimationFrame(() => moveInd($('[data-tab].on', app)));
+  const spy = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && mark(e.target.id.slice(4))), { rootMargin: '-35% 0px -60% 0px' });
+  // Разделы рисуются, когда до них почти долистали: драфт, аккаунты и мета делают десятки запросов.
+  const lazy = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    lazy.unobserve(e.target);
+    showTab(e.target.dataset.sec, e.target);
+  }), { rootMargin: '600px 0px' });
+  const HEAVY = ['builds', 'draft', 'accounts'];
+  $$('.msec', app).forEach((sec) => {
+    spy.observe(sec);
+    const b = $('.msec-b', sec);
+    if (HEAVY.includes(b.dataset.sec)) lazy.observe(b);
+    else showTab(b.dataset.sec, b);
+  });
+  window.addEventListener('hashchange', () => { spy.disconnect(); lazy.disconnect(); }, { once: true });
   $$('[data-act]', app).forEach((b) => (b.onclick = () => action(b.dataset.act)));
-  showTab('players');
   fx(app);
   mount3d(app);
 }
@@ -178,8 +196,7 @@ function action(act) {
       <div class="sub">Все сигналы против ${esc(r.hero)}</div>
       <div class="reasons">${r.neg.map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('')}</div></div>`;
   } else if (act === 'ai') {
-    $$('[data-tab]').find((b) => b.dataset.tab === 'ai').click();
-    $('nav.tabs').scrollIntoView();
+    $('#sec-ai').scrollIntoView({ behavior: 'smooth' });
     return;
   } else if (act === 'share') return share();
   fx(box);
@@ -194,8 +211,7 @@ function breakdown(p) {
   }).join('')}${p.toxicPenalty ? `<div class="bdr"><span>Штраф за токсичность</span><div></div><b>−${p.toxicPenalty}</b><em></em></div>` : ''}</div>`;
 }
 
-function showTab(k) {
-  const el = $('#tab');
+function showTab(k, el) {
   const f = { players, chart, map, episodes, lanes, noms, builds, draft, accounts, chat, ai }[k];
   f(el);
   fx(el);
