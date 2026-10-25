@@ -1,6 +1,7 @@
 // Обучение: разбор «моих» ошибок в матче, тайминги предметов, страница-тренер по последним играм.
 import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, itemImg, store, toast, md, askAI, fx } from './util.js';
 import { analyze, mmss, METRIC_RU } from './analyze.js';
+import { icon as ic } from './icons.js';
 
 // Мой аккаунт (кнопка «Это я»). По нему подсвечиваем «себя» в матчах и строим тренера.
 export const me = () => store.get('me', null);
@@ -57,7 +58,7 @@ export function coachSection(el, A, C) {
     fx(el);
     $$('[data-me]', el).forEach((b) => (b.onclick = () => { setMe(b.dataset.me); pick(p); }));
     $('[data-other]', el)?.addEventListener('click', () => chooser());
-    $('[data-coachai]', el)?.addEventListener('click', (e) => coachAI(e.target, p, A));
+    $('[data-coachai]', el)?.addEventListener('click', (e) => coachAI(e.currentTarget, p, A));
     itemTimings(p.heroId, p.purchases, C.itemsByKey).then((list) => {
       const box = $('[data-timings]', el);
       if (!box) return;
@@ -111,7 +112,7 @@ function report(p, A) {
         <div class="panel reveal"><h3>Тайминги предметов <small>против всех игр на ${esc(p.hero)}</small></h3><div data-timings><div class="spinner" style="width:22px;height:22px"></div></div></div>
       </div>
     </div>
-    <div class="panel reveal aibox"><h3>План от ИИ-тренера</h3><div data-coachout class="ai"><button class="btn" data-coachai>🧠 Разобрать мою игру</button></div></div>
+    <div class="panel reveal aibox"><h3>План от ИИ-тренера</h3><div data-coachout class="ai"><button class="btn" data-coachai>${ic('sparkles')} Разобрать мою игру</button></div></div>
   </div>`;
 }
 
@@ -228,7 +229,7 @@ function drawCoach(out, games, C, name) {
       ${games.map((g) => `<a class="mrow ${g.p.win ? 'w' : 'l'}" href="#/match/${g.id}"><img src="${heroImg(g.p.heroKey)}" alt=""><div><div class="pname">${esc(g.p.hero)}${g.ruiner ? '<span class="tag r">РУИНЕР</span>' : g.mvp ? '<span class="tag m">MVP</span>' : ''}</div><div class="psub">${esc(g.p.neg[0]?.title || 'без явных ошибок')}</div></div>
         <div class="num ${g.p.win ? 'rad' : 'dire'}">${g.p.win ? 'Победа' : 'Поражение'}</div><div class="num hide-s">${g.p.k}/${g.p.d}/${g.p.a}</div><div class="num hide-s">${g.p.score}</div></a>`).join('')}
     </div></div>
-    <div class="panel reveal aibox"><h3>Персональный план от ИИ-тренера</h3><div class="ai" id="cpai"><button class="btn" id="cpaibtn">🧠 Составить план тренировок</button></div></div>`;
+    <div class="panel reveal aibox"><h3>Персональный план от ИИ-тренера</h3><div class="ai" id="cpai"><button class="btn" id="cpaibtn">${ic('sparkles')} Составить план тренировок</button></div></div>`;
   fx(out);
   $('#cpaibtn').onclick = async () => {
     const box = $('#cpai');

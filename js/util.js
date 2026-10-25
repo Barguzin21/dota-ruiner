@@ -21,6 +21,8 @@ export function consts() {
 
 export const heroImg = (key) => `img/heroes/${key}.webp`;
 export const heroTall = (key) => `img/heroes/tall/${key}.webp`;
+// полноростовой рендер героя на прозрачном фоне (для 2D-режима и карточек)
+export const heroFull = (key) => `img/heroes/full/${key}.webp`;
 export const itemImg = (key) => `img/game/${key}.webp`;
 
 export async function getJSON(url, opt) {

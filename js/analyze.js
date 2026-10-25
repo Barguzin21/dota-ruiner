@@ -292,9 +292,14 @@ function lanes(players) {
   }).filter(Boolean);
 }
 
-function avgRank(players) {
+// rank_tier = ранг*10 + звёзды (1–5). Усредняем на сквозной шкале звёзд, иначе «64» и «55» дают несуществующий «Герой 9».
+export function avgRank(players) {
   const r = players.map((p) => p.rank).filter(Boolean);
-  return r.length ? Math.round(sum(r) / r.length) : null;
+  if (!r.length) return null;
+  const steps = r.map((t) => (Math.floor(t / 10) - 1) * 5 + Math.min(5, Math.max(1, t % 10 || 1)) - 1);
+  const v = Math.round(sum(steps) / steps.length);
+  const tier = Math.min(8, Math.floor(v / 5) + 1);
+  return tier === 8 ? 80 : tier * 10 + (v % 5) + 1;
 }
 
 // Перелом: последняя минута, когда победитель вышел вперёд и уже не отдавал преимущество.
@@ -366,21 +371,21 @@ function episodes(m, players, fights, ruiner) {
 }
 
 const NOMS = [
-  { id: 'feeder', icon: '🍖', title: 'Кормилец', desc: 'больше всех золота врагам', v: (p) => p.fed, f: (v) => `${fmt(v)} золота врагам` },
-  { id: 'immortal', icon: '🛡️', title: 'Бессмертный', desc: 'меньше всех смертей', v: (p) => -p.d + p.k * 0.01, f: (_, p) => `${p.d} смертей` },
-  { id: 'damage', icon: '💥', title: 'Мясник', desc: 'больше всех урона', v: (p) => p.dmg, f: (v) => `${fmt(v)} урона` },
-  { id: 'farmer', icon: '🌾', title: 'Фермер', desc: 'больше всех добитых крипов', v: (p) => p.lh, f: (v) => `${v} крипов` },
-  { id: 'eyes', icon: '👁️', title: 'Глаза команды', desc: 'больше всех вардов', v: (p) => p.obs + p.sen, f: (v) => `${v} вардов` },
-  { id: 'healer', icon: '💚', title: 'Лекарь', desc: 'больше всех хила', v: (p) => p.heal, f: (v) => `${fmt(v)} хила` },
-  { id: 'tank', icon: '🪨', title: 'Танк', desc: 'принял больше всех урона', v: (p) => p.taken, f: (v) => `${fmt(v)} урона принято` },
-  { id: 'control', icon: '🌀', title: 'Мастер контроля', desc: 'больше всех оглушений', v: (p) => p.stuns, f: (v) => `${Math.round(v)} сек. контроля` },
-  { id: 'builder', icon: '🏚️', title: 'Сносчик', desc: 'больше всех урона по зданиям', v: (p) => p.tower, f: (v) => `${fmt(v)} по зданиям` },
-  { id: 'tourist', icon: '🧳', title: 'Турист', desc: 'меньше всех участия в драках', v: (p) => -p.kp, f: (_, p) => `KP ${Math.round(p.kp * 100)}%` },
-  { id: 'ghost', icon: '👻', title: 'Призрак', desc: 'дольше всех лежал мёртвым', v: (p) => p.deadShare, f: (v) => `${Math.round(v * 100)}% игры мёртв` },
-  { id: 'hunter', icon: '🔦', title: 'Охотник за вардами', desc: 'больше всех снял вардов', v: (p) => p.dewards, f: (v) => `${v} вардов снято` },
-  { id: 'stacker', icon: '📦', title: 'Стакер', desc: 'больше всех стаков', v: (p) => p.stacks, f: (v) => `${v} стаков` },
-  { id: 'multi', icon: '⚡', title: 'Мульти-килл', desc: 'лучшая серия убийств', v: (p) => p.multi * 100 + p.streak, f: (_, p) => p.multi >= 5 ? 'RAMPAGE' : p.multi === 4 ? 'Ultra kill' : p.multi === 3 ? 'Triple kill' : `серия ${p.streak}` },
-  { id: 'toxic', icon: '☢️', title: 'Токсик матча', desc: 'больше всех ругался', v: (p) => p.toxic, f: (v) => `${v} грубых сообщений` },
+  { id: 'feeder', icon: 'coins', title: 'Кормилец', desc: 'больше всех золота врагам', v: (p) => p.fed, f: (v) => `${fmt(v)} золота врагам` },
+  { id: 'immortal', icon: 'shield', title: 'Бессмертный', desc: 'меньше всех смертей', v: (p) => -p.d + p.k * 0.01, f: (_, p) => `${p.d} смертей` },
+  { id: 'damage', icon: 'burst', title: 'Мясник', desc: 'больше всех урона', v: (p) => p.dmg, f: (v) => `${fmt(v)} урона` },
+  { id: 'farmer', icon: 'wheat', title: 'Фермер', desc: 'больше всех добитых крипов', v: (p) => p.lh, f: (v) => `${v} крипов` },
+  { id: 'eyes', icon: 'eye', title: 'Глаза команды', desc: 'больше всех вардов', v: (p) => p.obs + p.sen, f: (v) => `${v} вардов` },
+  { id: 'healer', icon: 'heart', title: 'Лекарь', desc: 'больше всех хила', v: (p) => p.heal, f: (v) => `${fmt(v)} хила` },
+  { id: 'tank', icon: 'tank', title: 'Танк', desc: 'принял больше всех урона', v: (p) => p.taken, f: (v) => `${fmt(v)} урона принято` },
+  { id: 'control', icon: 'spiral', title: 'Мастер контроля', desc: 'больше всех оглушений', v: (p) => p.stuns, f: (v) => `${Math.round(v)} сек. контроля` },
+  { id: 'builder', icon: 'tower', title: 'Сносчик', desc: 'больше всех урона по зданиям', v: (p) => p.tower, f: (v) => `${fmt(v)} по зданиям` },
+  { id: 'tourist', icon: 'suitcase', title: 'Турист', desc: 'меньше всех участия в драках', v: (p) => -p.kp, f: (_, p) => `KP ${Math.round(p.kp * 100)}%` },
+  { id: 'ghost', icon: 'ghost', title: 'Призрак', desc: 'дольше всех лежал мёртвым', v: (p) => p.deadShare, f: (v) => `${Math.round(v * 100)}% игры мёртв` },
+  { id: 'hunter', icon: 'target', title: 'Охотник за вардами', desc: 'больше всех снял вардов', v: (p) => p.dewards, f: (v) => `${v} вардов снято` },
+  { id: 'stacker', icon: 'boxes', title: 'Стакер', desc: 'больше всех стаков', v: (p) => p.stacks, f: (v) => `${v} стаков` },
+  { id: 'multi', icon: 'zap', title: 'Мульти-килл', desc: 'лучшая серия убийств', v: (p) => p.multi * 100 + p.streak, f: (_, p) => p.multi >= 5 ? 'RAMPAGE' : p.multi === 4 ? 'Ultra kill' : p.multi === 3 ? 'Triple kill' : `серия ${p.streak}` },
+  { id: 'toxic', icon: 'biohazard', title: 'Токсик матча', desc: 'больше всех ругался', v: (p) => p.toxic, f: (v) => `${v} грубых сообщений` },
 ];
 
 function nominations(players, mins) {

@@ -1,7 +1,7 @@
 // node test.mjs [match.json] — прогон анализа на сохранённом матче + базовые проверки.
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
-import { analyze, turningPoint, defend } from './js/analyze.js';
+import { analyze, turningPoint, defend, avgRank } from './js/analyze.js';
 
 const consts = JSON.parse(readFileSync('data/consts.json', 'utf8'));
 const itemsById = Object.fromEntries(Object.entries(consts.items).map(([id, it]) => [id, it.key]));
@@ -26,4 +26,6 @@ assert(!a.ruiner.win && a.mvp.win);
 assert(a.players.every((p) => p.score >= 0 && p.score <= 100));
 assert.deepEqual(turningPoint([100, -50, 200, 300], 'radiant').minute, 2);
 assert.equal(turningPoint([-100, -5000, -9000], 'dire').minute, 0);
+assert.equal(avgRank([{ rank: 64 }, { rank: 55 }]), 62); // Властелин 4 и Легенда 5 → Властелин 2, а не «Властелин 9»
+assert(a.rank % 10 <= 5);
 console.log('OK');

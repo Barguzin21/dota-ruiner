@@ -1,5 +1,6 @@
 // Примерочная: герои → наборы и предметы по слотам, цены, образы по бюджету (правила + ИИ).
 import { $, $$, esc, rub, consts, heroTall, getJSON, toast, askAI, API } from './util.js';
+import { icon as ic } from './icons.js';
 
 const RAR = { common: ['Обычный', '#b0c3d9'], uncommon: ['Необычный', '#5e98d9'], rare: ['Редкий', '#4b69ff'], mythical: ['Мифический', '#8847ff'],
   legendary: ['Легендарный', '#d32ce6'], immortal: ['Бессмертный', '#e4ae39'], arcana: ['Аркана', '#ade55c'], ancient: ['Древний', '#eb4b4b'], seasonal: ['Сезонный', '#fff34f'] };
@@ -71,7 +72,7 @@ function heroPage(app, C, D, P, params) {
       </aside>
       <section>
         <div class="panel aibox"><h3>Образ под бюджет <small>подборка по ценам и редкости</small></h3><div class="looks" id="looks"></div>
-        <div class="actions" style="margin-bottom:0"><button class="btn" id="aisets">✨ Подобрать стильные образы с ИИ</button></div></div>
+        <div class="actions" style="margin-bottom:0"><button class="btn" id="aisets">${ic('sparkles')} Подобрать стильные образы с ИИ</button></div></div>
         <div class="toolbar">
           <div class="seg"><button data-v="sets">Наборы</button><button data-v="items">Предметы</button></div>
           <input type="search" id="q" placeholder="Поиск по названию">
@@ -198,8 +199,9 @@ function heroPage(app, C, D, P, params) {
   };
 
   $('#aisets').onclick = async (e) => {
-    e.target.disabled = true;
-    e.target.textContent = 'ИИ подбирает…';
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = 'ИИ подбирает…';
     const sets = D.sets.filter((s) => setPrice(s) != null).sort((a, b) => vol(b) - vol(a)).slice(0, 70)
       .map((s) => ({ id: s.id, name: s.n, rarity: s.r, price: Math.round(setPrice(s) * 100) / 100, items: s.items }));
     const items = D.items.filter((i) => price(i) != null).sort((a, b) => vol(b) - vol(a)).slice(0, 160)
@@ -217,8 +219,8 @@ function heroPage(app, C, D, P, params) {
     } catch (err) {
       toast(err.status === 503 ? 'ИИ ещё не подключён — показаны подборки по правилам' : 'ИИ не ответил, показаны подборки по правилам');
     }
-    e.target.disabled = false;
-    e.target.textContent = '✨ Подобрать стильные образы с ИИ';
+    btn.disabled = false;
+    btn.innerHTML = `${ic('sparkles')} Подобрать стильные образы с ИИ`;
   };
 
   $$('.seg button').forEach((b) => (b.onclick = () => { st.view = b.dataset.v; drawList(); drawStage(); }));
@@ -258,7 +260,7 @@ function heroPage(app, C, D, P, params) {
     if (!man || !document.body.contains(look)) return;
     look.classList.add('is3d');
     look.innerHTML = `<div class="lt"></div><div class="l3d"><span class="badge3d">3D</span>
-      <button class="btn ghost sm" id="snap" title="Сохранить картинку">📸</button></div><div class="l3load"><div class="spinner"></div></div>`;
+      <button class="btn ghost sm" id="snap" title="Сохранить картинку">${ic('camera')}</button></div><div class="l3load"><div class="spinner"></div></div>`;
     viewer = v3.createViewer(look, man);
     window.addEventListener('hashchange', () => viewer.dispose(), { once: true });
     $('#snap').onclick = () => {

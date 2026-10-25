@@ -3,6 +3,7 @@ import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } 
 import { renderMatch } from './match.js';
 import { renderSets } from './wardrobe.js';
 import { coachPage, me, setMe } from './coach.js';
+import { icon as ic } from './icons.js';
 import { rankName, analyze } from './analyze.js';
 
 const app = $('#app');
@@ -55,12 +56,12 @@ function home() {
       </a>
     </div>
     <div class="features">
-      <div class="feature tilt reveal"><div class="ico">🎯</div><b>Руинер, MVP и проценты</b><p>11 метрик против перцентилей на том же герое, доля руина каждого и устойчивость вердикта.</p></div>
-      <div class="feature tilt reveal"><div class="ico">🗺️</div><b>Карта и линии</b><p>Смерти и варды на карте с ползунком времени, кто выиграл каждую линию к 10:00.</p></div>
-      <div class="feature tilt reveal"><div class="ico">🕵️</div><b>Смурфы и аккаунты</b><p>Сколько игр у каждого, винрейт, первый раз на герое или смурф.</p></div>
-      <div class="feature tilt reveal"><div class="ico">🧠</div><b>Разбор от ИИ</b><p>Живой комментарий матча человеческим языком и личные советы каждому.</p></div>
-      <div class="feature tilt reveal"><div class="ico">👕</div><b>3D-примерочная</b><p>Настоящие модели из игры: надевай сеты, смотри цены, ИИ подберёт образ под бюджет.</p></div>
-      <div class="feature tilt reveal"><div class="ico">📈</div><b>Руин-статистика</b><p>Как часто игрок руинит и тащит в последних матчах.</p></div>
+      <div class="feature tilt reveal"><div class="ico">${ic('target')}</div><b>Руинер, MVP и проценты</b><p>11 метрик против перцентилей на том же герое, доля руина каждого и устойчивость вердикта.</p></div>
+      <div class="feature tilt reveal"><div class="ico">${ic('map')}</div><b>Карта и линии</b><p>Смерти и варды на карте с ползунком времени, кто выиграл каждую линию к 10:00.</p></div>
+      <div class="feature tilt reveal"><div class="ico">${ic('usersearch')}</div><b>Смурфы и аккаунты</b><p>Сколько игр у каждого, винрейт, первый раз на герое или смурф.</p></div>
+      <div class="feature tilt reveal"><div class="ico">${ic('sparkles')}</div><b>Разбор от ИИ</b><p>Живой комментарий матча человеческим языком и личные советы каждому.</p></div>
+      <div class="feature tilt reveal"><div class="ico">${ic('cube')}</div><b>3D-примерочная</b><p>Настоящие модели из игры: надевай сеты, смотри цены, ИИ подберёт образ под бюджет.</p></div>
+      <div class="feature tilt reveal"><div class="ico">${ic('chart')}</div><b>Руин-статистика</b><p>Как часто игрок руинит и тащит в последних матчах.</p></div>
     </div>`;
   $('#f').onsubmit = (e) => {
     e.preventDefault();
@@ -113,7 +114,7 @@ async function player(id) {
       <div class="phead"><img src="${esc(p.avatarfull)}" alt=""><div>
         <h1>${esc(p.personaname)}</h1>
         <div class="psub">${rankName(prof.rank_tier)} · <a href="https://www.opendota.com/players/${id}" target="_blank" rel="noopener">OpenDota</a></div>
-      </div><div class="coach-acts" style="margin-left:auto"><a class="btn" href="#/coach/${id}">🎓 Тренер по 20 играм</a>${me() === +id ? '<span class="chip pos">это ты</span>' : `<button class="btn ghost" id="itsme">Это я</button>`}</div></div>
+      </div><div class="coach-acts" style="margin-left:auto"><a class="btn" href="#/coach/${id}">${ic('cap')} Тренер по 20 играм</a>${me() === +id ? '<span class="chip pos">это ты</span>' : `<button class="btn ghost" id="itsme">Это я</button>`}</div></div>
       <div class="panel reveal"><h3>Руин-статистика <small>последние ${Math.min(10, list.length)} матчей</small></h3><div class="ruinstats" id="rs"><div class="loading" style="padding:10px"><div class="spinner"></div>Разбираем матчи…</div></div></div>
       <div class="panel reveal"><h3>Последние матчи <small>нажми, чтобы узнать, кто заруинил</small></h3>
       <div class="mlist">${list.map((m) => {
@@ -217,6 +218,15 @@ themeBtn.onclick = () => {
   paintTheme();
 };
 paintTheme();
+// Шапка и меню разделов прячутся при прокрутке вниз и возвращаются при прокрутке вверх.
+let lastY = scrollY;
+addEventListener('scroll', () => {
+  const y = scrollY;
+  if (Math.abs(y - lastY) < 8) return;
+  document.body.classList.toggle('bars-hidden', y > lastY && y > 160);
+  lastY = y;
+}, { passive: true });
+
 embers();
 window.addEventListener('hashchange', route);
 route();

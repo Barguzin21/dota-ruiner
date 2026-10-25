@@ -1,7 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, itemImg, store, toast, md, askAI, fx } from './util.js';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx } from './util.js';
 import { analyze, defend, mmss, rankName } from './analyze.js';
 import { coachSection, me, itemTimings } from './coach.js';
+import { icon as ic } from './icons.js';
 
 let A; // текущий разбор
 let C; // справочники
@@ -92,7 +93,8 @@ function draw(app) {
     ${A.parsed ? '' : '<div class="banner" id="parse"><div class="spinner" style="width:22px;height:22px;margin:0;border-width:2px"></div><span>Реплей ещё не разобран — заказали разбор у OpenDota. Пока показываем анализ по общей статистике.</span></div>'}
     <section class="verdict">
       <div class="vcard tilt reveal"><div class="gyro" aria-hidden="true"><i></i><i></i><i></i></div>
-        <div class="vstage" data-hero3d="${r.heroKey}" data-tone="red"><img class="portrait" src="${portrait(r, 1)}" alt="${esc(r.hero)}"></div>
+        <div class="vstage" data-hero3d="${r.heroKey}" data-tone="red"><img class="portrait full" src="${heroFull(r.heroKey)}" onerror="this.onerror=null;this.src='${portrait(r, 1)}';this.classList.remove('full')" alt="${esc(r.hero)}">
+          <div class="viewsw" role="group" aria-label="Вид героя"><button data-view="3d">3D</button><button data-view="2d">2D</button></div></div>
         <div class="vbody">
           <div class="vlabel glitch" data-text="ЗАРУИНИЛ">ЗАРУИНИЛ</div>
           <div class="vname">${esc(r.name)}</div>
@@ -113,7 +115,7 @@ function draw(app) {
       </div>
       <div class="vside">
         <div class="vcard mvp tilt reveal">
-          <div class="vstage" data-hero3d="${mvp.heroKey}" data-tone="gold"><img class="portrait" src="${portrait(mvp, 1)}" alt=""></div>
+          <div class="vstage" data-hero3d="${mvp.heroKey}" data-tone="gold"><img class="portrait full" src="${heroFull(mvp.heroKey)}" onerror="this.onerror=null;this.src='${portrait(mvp, 1)}';this.classList.remove('full')" alt=""></div>
           <div class="vbody"><div class="vlabel">MVP</div><div class="vname">${esc(mvp.name)}</div>
           <div class="vhero">${esc(mvp.hero)} · ${mvp.k}/${mvp.d}/${mvp.a} · ${mvp.gpm} золота/мин</div>
           <div class="meter"><span>Влияние на игру</span>${scoreBar(mvp.score)}<b>${mvp.score}</b></div>
@@ -126,11 +128,13 @@ function draw(app) {
     </section>
     <div class="reasons reveal">${r.neg.slice(0, 4).map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('') || '<div class="reason"><b>Явных провалов нет</b><span>Просто хуже остальных по сумме метрик.</span></div>'}</div>
     <div class="actions">
-      <button class="btn ghost" data-act="defend">⚖️ Оправдать руинера</button>
-      <button class="btn ghost" data-act="why">🔍 Почему именно он?</button>
-      <button class="btn" data-act="ai">🧠 Разбор от ИИ</button>
-      <button class="btn gold" data-act="share">📤 Поделиться</button>
-      <a class="btn ghost" href="#/sets/${r.heroKey}">👕 Сеты на ${esc(r.hero)}</a>
+      <button class="btn ghost" data-act="defend">${ic('scale')} Оправдать руинера</button>
+      <button class="btn ghost" data-act="why">${ic('search')} Почему именно он?</button>
+      <button class="btn" data-act="ai">${ic('sparkles')} Разбор от ИИ</button>
+      <button class="btn gold" data-act="share">${ic('share')} Поделиться</button>
+      <button class="btn ghost" data-act="copy">${ic('copy')} Скопировать итог</button>
+      <button class="btn ghost" data-act="card">${ic('download')} Скачать карточку</button>
+      <a class="btn ghost" href="#/sets/${r.heroKey}">${ic('shirt')} Сеты на ${esc(r.hero)}</a>
     </div>
     <div id="extra"></div>
     <nav class="tabs"><div class="tabs-in">${TABS.map(([k, t], i) => `<button data-tab="${k}" class="${i ? '' : 'on'}">${t}</button>`).join('')}<i class="tab-ind"></i></div></nav>
@@ -172,11 +176,24 @@ function draw(app) {
   mount3d(app);
 }
 
-// Живые герои в карточках вердикта, если для них выгружены 3D-модели.
+// Живые герои в карточках вердикта (3D) или полноростовой рендер (2D) — переключатель запоминается.
 async function mount3d(root) {
-  const v3 = await import('./viewer3d.js').catch(() => null);
-  if (!v3) return;
-  for (const el of $$('[data-hero3d]', root)) v3.showcase(el, el.dataset.hero3d, el.dataset.tone);
+  const verdict = $('.verdict', root);
+  const paint = () => {
+    const flat = store.get('view', '3d') === '2d';
+    verdict.classList.toggle('flat', flat);
+    $$('.viewsw button', root).forEach((b) => b.classList.toggle('on', b.dataset.view === (flat ? '2d' : '3d')));
+    return flat;
+  };
+  let started = false;
+  const start = async () => {
+    if (started) return;
+    started = true;
+    const v3 = await import('./viewer3d.js').catch(() => null);
+    if (v3) for (const el of $$('[data-hero3d]', root)) v3.showcase(el, el.dataset.hero3d, el.dataset.tone);
+  };
+  $$('.viewsw button', root).forEach((b) => (b.onclick = () => { store.set('view', b.dataset.view); if (!paint()) start(); }));
+  if (!paint()) start();
 }
 
 function mini(title, p, sub) {
@@ -200,6 +217,8 @@ function action(act) {
     $('#sec-ai').scrollIntoView({ behavior: 'smooth' });
     return;
   } else if (act === 'share') return share();
+  else if (act === 'copy') return copySummary();
+  else if (act === 'card') return downloadCard();
   fx(box);
   box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
@@ -274,7 +293,7 @@ function pdetail(p) {
     <div class="sub">Из чего сложился счёт (${p.score}/100)</div>${breakdown(p)}
     ${p.neg.length ? `<div class="sub">Ошибки</div><div class="reasons">${p.neg.map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('')}</div>` : ''}
     ${p.pos.length ? `<div class="sub">Сильные стороны</div><div class="reasons">${p.pos.map((x) => `<div class="reason pos"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('')}</div>` : ''}
-    <div class="actions"><button class="btn" data-coach>🧠 Советы от ИИ</button><a class="btn ghost" href="#/sets/${p.heroKey}">👕 Сеты на ${esc(p.hero)}</a>
+    <div class="actions"><button class="btn" data-coach>${ic('sparkles')} Советы от ИИ</button><a class="btn ghost" href="#/sets/${p.heroKey}">${ic('shirt')} Сеты на ${esc(p.hero)}</a>
     ${p.accountId ? `<a class="btn ghost" href="#/player/${p.accountId}">Другие матчи игрока</a>` : ''}</div>
     <div data-coachbox></div></div>`;
 }
@@ -319,8 +338,9 @@ async function accounts(el) {
 
 function bindDetail(el, p) {
   $('[data-coach]', el).onclick = async (e) => {
+    const btn = e.currentTarget;
     const box = $('[data-coachbox]', el);
-    e.target.disabled = true;
+    btn.disabled = true;
     box.innerHTML = '<div class="loading" style="padding:20px"><div class="spinner"></div>ИИ смотрит на игру…</div>';
     try {
       const text = await askAI('player', { match: brief(), player: playerBrief(p) });
@@ -328,7 +348,7 @@ function bindDetail(el, p) {
     } catch (err) {
       box.innerHTML = `<div class="panel aibox ai">${aiFallbackNote(err)}${md(coachRules(p))}</div>`;
     }
-    e.target.disabled = false;
+    btn.disabled = false;
   };
 }
 
@@ -446,7 +466,7 @@ function map(el) {
 // ---------- эпизоды
 function episodes(el) {
   const kinds = { all: 'Все', ruiner: 'Руинер', fight: 'Драки', building: 'Здания', rosh: 'Рошан' };
-  const icon = { fb: '🩸', building: '🏚️', rosh: '🐉', fight: '⚔️', solo: '💀' };
+  const icon = { fb: ic('drop'), building: ic('tower'), rosh: ic('crown'), fight: ic('swords'), solo: ic('skull') };
   let f = 'all';
   const render = () => {
     const eps = A.episodes.filter((e) => f === 'all' || (f === 'ruiner' ? e.ruiner : e.kind === f));
@@ -462,7 +482,7 @@ function episodes(el) {
 // ---------- номинации
 function noms(el) {
   el.innerHTML = `<div class="panel"><h3>Номинации матча</h3><div class="noms">${A.noms.map((n) => `
-    <div class="nom"><div class="ic">${n.icon}</div><div><b>${n.title}</b><div class="v">${n.desc}</div>
+    <div class="nom"><div class="ic nomic-${n.id}">${ic(n.icon)}</div><div><b>${n.title}</b><div class="v">${n.desc}</div>
     <div class="who"><img src="${portrait(n.p)}" alt=""><span>${esc(n.p.name)}</span></div><div class="v">${esc(n.value)}</div></div></div>`).join('')}</div></div>`;
 }
 
@@ -601,7 +621,7 @@ ${p.pos.length ? p.pos.slice(0, 3).map((x) => `- ${x.text}`).join('\n') : '- С�
 }
 
 function ai(el) {
-  el.innerHTML = `<div class="panel aibox"><h3>Разбор от ИИ <small>живой комментарий матча</small></h3><div id="aiout" class="ai"><button class="btn" id="aigo">🧠 Сгенерировать разбор</button></div></div>`;
+  el.innerHTML = `<div class="panel aibox"><h3>Разбор от ИИ <small>живой комментарий матча</small></h3><div id="aiout" class="ai"><button class="btn" id="aigo">${ic('sparkles')} Сгенерировать разбор</button></div></div>`;
   $('#aigo').onclick = async () => {
     const out = $('#aiout');
     out.innerHTML = '<div class="loading" style="padding:30px"><div class="spinner"></div>ИИ смотрит матч…</div>';
@@ -613,68 +633,189 @@ function ai(el) {
   };
 }
 
-// ---------- карточка «Поделиться»
-async function share() {
+// ---------- итог текстом и карточка «Поделиться»
+function summaryText() {
   const r = A.ruiner;
+  const m = A.mvp;
+  return [
+    `КТО ЗАРУИНИЛ? | Матч ${A.id}`,
+    `Победитель: ${teamName(A.winner)} (${A.score.radiant}:${A.score.dire}, ${mmss(A.duration)})`,
+    `Руинер: ${r.name} (${r.hero}) — руин ${r.share}%, влияние ${r.score}/100, устойчивость ${A.stability}%`,
+    `Почему: ${r.neg.slice(0, 2).map((n) => n.title.toLowerCase()).join(', ') || 'хуже всех по сумме метрик'}`,
+    `MVP: ${m.name} (${m.hero}) — влияние ${m.score}`,
+    `Лучший в поражении: ${A.bestLoser.name} (${A.bestLoser.hero})`,
+    `Разбор: ${location.origin}${location.pathname}#/match/${A.id}`,
+  ].join('\n');
+}
+
+async function copySummary() {
+  await navigator.clipboard.writeText(summaryText()).then(() => toast('Итог скопирован'), () => toast('Не удалось скопировать'));
+}
+
+// Квадратная карточка 1080×1080: полноростовой рендер героя, вердикт, руин, причины, MVP.
+async function drawCard() {
+  const r = A.ruiner;
+  const sport = document.documentElement.classList.contains('sport');
+  const D = sport ? 'Oswald' : 'Unbounded';
+  const M = sport ? 'JetBrains Mono' : 'Unbounded';
+  const S = 1080;
   const cv = document.createElement('canvas');
-  cv.width = 1200;
-  cv.height = 630;
+  cv.width = cv.height = S;
   const x = cv.getContext('2d');
   await document.fonts.ready;
   const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
-  const [pr, pm] = await Promise.all([load(heroTall(r.heroKey)), load(heroTall(A.mvp.heroKey))]);
-  const g = x.createLinearGradient(0, 0, 1200, 630);
-  g.addColorStop(0, '#2a0b0e');
-  g.addColorStop(0.55, '#0e1016');
-  g.addColorStop(1, '#0a0b10');
-  x.fillStyle = g;
-  x.fillRect(0, 0, 1200, 630);
-  if (pr) { x.save(); roundRect(x, 60, 70, 330, 437, 22); x.clip(); x.drawImage(pr, 60, 70, 330, 437); x.restore(); }
-  x.fillStyle = '#ff3b3b';
-  x.font = '900 86px Unbounded';
-  x.fillText('ЗАРУИНИЛ', 430, 160);
-  x.fillStyle = '#eceef4';
-  x.font = '700 44px Unbounded';
-  x.fillText(clip(x, r.name, 700), 430, 230);
-  x.font = '500 26px Inter';
-  x.fillStyle = '#8b91a5';
-  x.fillText(`${r.hero} · ${r.k}/${r.d}/${r.a} · GPM ${r.gpm} · руин ${r.share}% · устойчивость ${A.stability}%`, 430, 276);
-  x.font = '600 26px Inter';
-  r.neg.slice(0, 3).forEach((n, i) => {
-    x.fillStyle = '#ff6b4a';
-    x.fillText('✕', 430, 340 + i * 44);
-    x.fillStyle = '#eceef4';
-    x.fillText(clip(x, n.title + ' — ' + n.text, 690), 466, 340 + i * 44);
-  });
-  if (pm) { x.save(); roundRect(x, 430, 490, 66, 88, 10); x.clip(); x.drawImage(pm, 430, 490, 66, 88); x.restore(); }
-  x.fillStyle = '#ffc23d';
-  x.font = '900 30px Unbounded';
-  x.fillText('MVP', 512, 528);
-  x.fillStyle = '#eceef4';
-  x.font = '600 24px Inter';
-  x.fillText(clip(x, `${A.mvp.name} · ${A.mvp.hero}`, 600), 512, 566);
-  x.fillStyle = '#8b91a5';
-  x.font = '500 20px Inter';
-  x.fillText(`Матч ${A.id} · ${mmss(A.duration)} · ${A.score.radiant}:${A.score.dire}`, 60, 590);
-  x.textAlign = 'right';
-  x.fillText(location.host, 1140, 590);
+  const [hero, mvp] = await Promise.all([load(heroFull(r.heroKey)), load(heroImg(A.mvp.heroKey))]);
 
-  const text = `Кто заруинил матч ${A.id}? ${r.hero} (${r.name}), руин ${r.share}% — ${r.neg.slice(0, 2).map((n) => n.title.toLowerCase()).join(', ')}. MVP — ${A.mvp.hero}. ${location.href}`;
+  // фон: тёмный с красным свечением за героем и тонкой сеткой
+  x.fillStyle = sport ? '#0d0e10' : '#0a0b10';
+  x.fillRect(0, 0, S, S);
+  const glow = x.createRadialGradient(760, 600, 40, 760, 600, 560);
+  glow.addColorStop(0, sport ? 'rgba(232,50,44,.28)' : 'rgba(255,59,59,.42)');
+  glow.addColorStop(1, 'rgba(255,59,59,0)');
+  x.fillStyle = glow;
+  x.fillRect(0, 0, S, S);
+  x.strokeStyle = 'rgba(255,255,255,.035)';
+  for (let i = 0; i < S; i += 54) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, S); x.moveTo(0, i); x.lineTo(S, i); x.stroke(); }
+
+  if (hero) {
+    const h = 900;
+    const w = hero.width * (h / hero.height);
+    x.save();
+    if (sport) x.filter = 'grayscale(1) contrast(1.1)';
+    x.shadowColor = 'rgba(0,0,0,.7)';
+    x.shadowBlur = 40;
+    x.drawImage(hero, S - w + 40, S - h - 40, w, h);
+    x.restore();
+    // затемнение слева, чтобы текст читался поверх героя
+    const fade = x.createLinearGradient(0, 0, 720, 0);
+    fade.addColorStop(0.45, sport ? 'rgba(13,14,16,.96)' : 'rgba(10,11,16,.95)');
+    fade.addColorStop(1, 'rgba(10,11,16,0)');
+    x.fillStyle = fade;
+    x.fillRect(0, 0, 760, S);
+  }
+
+  // шапка
+  x.font = `900 34px ${D}`;
+  x.fillStyle = '#f2f2ee';
+  x.fillText('КТО', 64, 96);
+  x.fillStyle = '#ff3b3b';
+  x.fillText('ЗАРУИНИЛ?', 64 + x.measureText('КТО ').width, 96);
+  x.font = `600 22px ${M}`;
+  x.fillStyle = '#8d9198';
+  x.textAlign = 'right';
+  x.fillText(`МАТЧ ${A.id}`, S - 64, 94);
+  x.textAlign = 'left';
+  if (sport) { x.fillStyle = '#e8322c'; x.fillRect(64, 122, S - 128, 4); }
+
+  // вердикт
+  x.fillStyle = '#ff3b3b';
+  x.font = `900 ${sport ? 120 : 96}px ${D}`;
+  if (!sport) { x.shadowColor = 'rgba(255,59,59,.55)'; x.shadowBlur = 40; }
+  x.fillText('ЗАРУИНИЛ', 60, 300);
+  x.shadowBlur = 0;
+  x.fillStyle = '#ffffff';
+  x.font = `800 60px ${D}`;
+  x.fillText(clip(x, r.name, 640), 64, 390);
+  x.font = '500 30px Inter';
+  x.fillStyle = '#9aa0ad';
+  x.fillText(`${r.hero} · позиция ${r.role} · ${teamName(r.team)}`, 64, 440);
+
+  // шкала руина
+  x.font = `800 26px ${D}`;
+  x.fillStyle = '#ff8a7a';
+  x.fillText(`РУИН В КАТКЕ ${r.share}%`, 64, 520);
+  roundRect(x, 64, 540, 560, 16, 8);
+  x.fillStyle = 'rgba(255,255,255,.08)';
+  x.fill();
+  const bar = x.createLinearGradient(64, 0, 624, 0);
+  bar.addColorStop(0, '#ffb23d');
+  bar.addColorStop(1, '#ff3b3b');
+  roundRect(x, 64, 540, Math.max(16, 560 * Math.min(1, r.share / 40)), 16, 8);
+  x.fillStyle = bar;
+  x.fill();
+
+  // статистика плитками
+  const stats = [['У / С / П', `${r.k}/${r.d}/${r.a}`], ['ЗОЛОТО В МИНУТУ', r.gpm], ['УЧАСТИЕ В ДРАКАХ', `${Math.round(r.kp * 100)}%`], ['ВЛИЯНИЕ НА ИГРУ', `${r.score}/100`]];
+  stats.forEach(([k, v], i) => {
+    const bx = 64 + (i % 2) * 288;
+    const by = 600 + Math.floor(i / 2) * 112;
+    roundRect(x, bx, by, 272, 96, sport ? 4 : 18);
+    x.fillStyle = 'rgba(255,255,255,.05)';
+    x.fill();
+    x.strokeStyle = 'rgba(255,255,255,.08)';
+    x.stroke();
+    x.font = '600 17px Inter';
+    x.fillStyle = '#8d9198';
+    x.fillText(k, bx + 22, by + 34);
+    x.font = `800 36px ${M}`;
+    x.fillStyle = '#f2f2ee';
+    x.fillText(String(v), bx + 22, by + 76);
+  });
+
+  // причины
+  x.font = '600 24px Inter';
+  r.neg.slice(0, 2).forEach((n, i) => {
+    x.fillStyle = '#ff3b3b';
+    x.fillRect(64, 846 + i * 46, 6, 28);
+    x.fillStyle = '#e8e8e4';
+    x.fillText(clip(x, n.title, 560), 86, 869 + i * 46);
+  });
+
+  // MVP и адрес
+  if (mvp) { x.save(); roundRect(x, 64, 960, 96, 54, 8); x.clip(); x.drawImage(mvp, 64, 960, 96, 54); x.restore(); }
+  x.font = `800 26px ${D}`;
+  x.fillStyle = '#ffc23d';
+  x.fillText('MVP', 176, 986);
+  x.font = '600 24px Inter';
+  x.fillStyle = '#e8e8e4';
+  x.fillText(clip(x, `${A.mvp.name} · ${A.mvp.hero}`, 420), 176, 1014);
+  x.font = '500 20px Inter';
+  x.fillStyle = '#6f7480';
+  x.textAlign = 'right';
+  x.fillText(`${location.host}${location.pathname.replace(/\/$/, '')}`, S - 64, 1036);
+  x.textAlign = 'left';
+
+  // штамп у героя
+  x.save();
+  x.translate(S - 290, S - 170);
+  x.rotate(-0.12);
+  x.font = `900 28px ${D}`;
+  const sw = x.measureText('РУИНЕР НАЙДЕН').width + 56; // рамка по ширине надписи
+  x.strokeStyle = '#ff3b3b';
+  x.lineWidth = 4;
+  roundRect(x, -sw / 2, -34, sw, 68, sport ? 3 : 12);
+  x.fillStyle = 'rgba(10,4,6,.7)';
+  x.fill();
+  x.stroke();
+  x.fillStyle = '#ff4d4d';
+  x.textAlign = 'center';
+  x.fillText('РУИНЕР НАЙДЕН', 0, 10);
+  x.restore();
+  return cv;
+}
+
+async function downloadCard() {
+  const cv = await drawCard();
+  const a = document.createElement('a');
+  a.download = `ruiner-${A.id}.png`;
+  a.href = cv.toDataURL('image/png');
+  a.click();
+}
+
+async function share() {
+  const cv = await drawCard();
   const modal = document.createElement('div');
   modal.className = 'modal';
-  modal.innerHTML = `<div><h3 style="font:700 16px var(--display);margin:0 0 12px">Карточка матча</h3><div id="cvh"></div>
-    <div class="actions"><button class="btn gold" data-s="png">Скачать картинку</button><button class="btn ghost" data-s="txt">Копировать итог</button><button class="btn ghost" data-s="link">Копировать ссылку</button><button class="btn ghost" data-s="close">Закрыть</button></div></div>`;
+  modal.innerHTML = `<div class="sharebox"><h3 style="font:700 16px var(--display);margin:0 0 12px">Карточка руинера</h3><div id="cvh"></div>
+    <pre class="sumtext">${esc(summaryText())}</pre>
+    <div class="actions"><button class="btn gold" data-s="png">${ic('download')} Скачать карточку</button><button class="btn ghost" data-s="txt">${ic('copy')} Скопировать итог</button>
+    <button class="btn ghost" data-s="link">Копировать ссылку</button><button class="btn ghost" data-s="close">Закрыть</button></div></div>`;
   $('#cvh', modal).append(cv);
   modal.onclick = async (e) => {
-    const s = e.target.dataset?.s;
+    const s = e.target.closest('[data-s]')?.dataset.s;
     if (e.target === modal || s === 'close') modal.remove();
-    if (s === 'png') {
-      const a = document.createElement('a');
-      a.download = `ruiner-${A.id}.png`;
-      a.href = cv.toDataURL('image/png');
-      a.click();
-    }
-    if (s === 'txt') { await navigator.clipboard.writeText(text).catch(() => {}); toast('Итог скопирован'); }
+    if (s === 'png') { const a = document.createElement('a'); a.download = `ruiner-${A.id}.png`; a.href = cv.toDataURL('image/png'); a.click(); }
+    if (s === 'txt') copySummary();
     if (s === 'link') { await navigator.clipboard.writeText(location.href).catch(() => {}); toast('Ссылка скопирована'); }
   };
   document.body.append(modal);

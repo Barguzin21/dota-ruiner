@@ -70,3 +70,8 @@
 .sport .drill { border-radius: 3px; }
 .sport .deaths span { border-radius: 2px; font-family: var(--mono); }
 .sport .tag.you { border-radius: 2px; }
+.sport .nom .ic { border-radius: 4px; box-shadow: none; }
+.sport .feature .ico { border-radius: 4px; }
+.sport .viewsw { border-radius: 3px; }
+.sport .viewsw button { border-radius: 2px; font-family: var(--display); }
+.sport .vcard:not(.mvp) .vstage .portrait.full { filter: grayscale(1) contrast(1.1); }

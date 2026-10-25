@@ -88,33 +88,38 @@ def vtex(raw):
 def save(img, dst, width):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     img.thumbnail((width, width))
-    img.save(dst, 'WEBP', quality=82)
+    img.save(dst, 'WEBP', quality=86)
 
 
-miss = []
-for h in consts['heroes'].values():
-    key = h['name'].replace('npc_dota_hero_', '')
-    tall = png(f"panorama/images/heroes/selection/{h['name']}_png.vtex_c")
-    if tall:
-        save(tall.copy(), os.path.join(ROOT, 'img', 'heroes', 'tall', f'{key}.webp'), 300)
-    # DXT5-портреты у Valve декодируются блёкло — для них режем горизонтальный кадр из вертикального
-    img = png(f"panorama/images/heroes/{h['name']}_png.vtex_c") if not is_dxt(f"panorama/images/heroes/{h['name']}_png.vtex_c") else None
-    if not img and tall:
-        w, hh = tall.size
-        img = tall.crop((0, int(hh * 0.12), w, int(hh * 0.12 + w * 9 / 16)))
-    if img:
-        save(img, os.path.join(ROOT, 'img', 'heroes', f'{key}.webp'), 256)
-    else:
-        miss.append(h['name'])
-    icon = png(f"panorama/images/heroes/icons/{h['name']}_png.vtex_c")
-    if icon:
-        save(icon, os.path.join(ROOT, 'img', 'heroes', 'icons', f'{key}.webp'), 64)
+if __name__ == '__main__':
+    miss = []
+    for h in consts['heroes'].values():
+        key = h['name'].replace('npc_dota_hero_', '')
+        tall = png(f"panorama/images/heroes/selection/{h['name']}_png.vtex_c")
+        if tall:
+            save(tall.copy(), os.path.join(ROOT, 'img', 'heroes', 'tall', f'{key}.webp'), 300)
+        # горизонтальный портрет — оригинал (DXT5 теперь декодируется через YCoCg), вырезка из вертикального — запасной вариант
+        img = png(f"panorama/images/heroes/{h['name']}_png.vtex_c")
+        if not img and tall:
+            w, hh = tall.size
+            img = tall.crop((0, int(hh * 0.12), w, int(hh * 0.12 + w * 9 / 16)))
+        # полноростовой рендер 448x678 на прозрачном фоне (страница наборов в клиенте) — для 2D-режима
+        full = png(f"panorama/images/econ/sets/v2/{h['name']}_0_png.vtex_c")
+        if full:
+            save(full, os.path.join(ROOT, 'img', 'heroes', 'full', f'{key}.webp'), 700)
+        if img:
+            save(img, os.path.join(ROOT, 'img', 'heroes', f'{key}.webp'), 256)
+        else:
+            miss.append(h['name'])
+        icon = png(f"panorama/images/heroes/icons/{h['name']}_png.vtex_c")
+        if icon:
+            save(icon, os.path.join(ROOT, 'img', 'heroes', 'icons', f'{key}.webp'), 64)
 
-for it in consts['items'].values():
-    key = it['key']
-    img = png(f'panorama/images/items/{key}_png.vtex_c')
-    if img:
-        save(img, os.path.join(ROOT, 'img', 'game', f'{key}.webp'), 88)
-    elif not key.startswith('recipe'):
-        miss.append(key)
-print('missing', len(miss), miss[:30])
+    for it in consts['items'].values():
+        key = it['key']
+        img = png(f'panorama/images/items/{key}_png.vtex_c')
+        if img:
+            save(img, os.path.join(ROOT, 'img', 'game', f'{key}.webp'), 88)
+        elif not key.startswith('recipe'):
+            miss.append(key)
+    print('missing', len(miss), miss[:30])
