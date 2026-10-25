@@ -12,7 +12,13 @@ const a = analyze(m, { heroes: consts.heroes, itemsById });
 for (const p of [...a.players].sort((x, y) => x.team.localeCompare(y.team) || x.score - y.score)) {
   console.log(p.team.padEnd(8), p.win ? 'W' : 'L', `pos${p.role}`, p.hero.padEnd(18), String(p.score).padStart(3), p.neg.map((x) => x.title).join(' | '));
 }
-console.log('РУИНЕР:', a.ruiner.hero, a.ruiner.name, a.confidence + '%', '| MVP:', a.mvp.hero, '| перелом', a.turning);
+console.log('РУИНЕР:', a.ruiner.hero, a.ruiner.name, `уверенность ${a.confidence}%, устойчивость ${a.stability}%`, '| MVP:', a.mvp.hero, '| перелом', a.turning);
+console.log('доля руина:', a.players.filter((p) => !p.win).map((p) => `${p.hero} ${p.share}%`).join(', '));
+console.log('линии:', a.lanes.map((l) => `${l.lane}: ${l.winner || 'ничья'} ${l.diff}`).join(' | '));
+// Lifestealer с Rage не должен получать «нет BKB»
+assert(!a.players.find((p) => p.heroKey === 'life_stealer')?.neg.some((x) => x.title === 'Нет сейв-предметов'));
+assert.equal(a.players.filter((p) => !p.win).reduce((s, p) => s + p.share, 0) >= 99, true);
+assert(a.players.every((p) => Math.abs(p.breakdown.reduce((s, b) => s + b.weight, 0) - 1) < 1e-9));
 console.log('номинации:', a.noms.map((n) => `${n.title}=${n.p.hero}`).join(', '));
 console.log('эпизодов:', a.episodes.length, 'оправдание:', defend(a, a.ruiner));
 

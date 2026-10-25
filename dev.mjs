@@ -7,7 +7,8 @@ import { pathToFileURL } from 'node:url';
 
 const ROOT = process.cwd();
 const PORT = +process.argv[2] || 3141;
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.png': 'image/png' };
+const MODELS = normalize(process.env.MODELS || join(ROOT, '..', 'dota-ruiner-models'));
+const TYPES = { '.glb': 'model/gltf-binary','.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.png': 'image/png' };
 if (existsSync('.env')) for (const l of readFileSync('.env', 'utf8').split('\n')) { const m = l.match(/^(\w+)=(.*)$/); if (m) process.env[m[1]] ??= m[2].trim(); }
 
 createServer(async (req, res) => {
@@ -23,8 +24,11 @@ createServer(async (req, res) => {
     res.json = (d) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(d)); };
     return (await import(pathToFileURL(file))).default(req, res);
   }
-  const path = normalize(join(ROOT, decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname)));
-  if (!path.startsWith(ROOT)) return res.writeHead(403).end();
+  // 3D-модели живут в соседнем репозитории (на проде — barguzin21.github.io/dota-ruiner-models)
+  const base = url.pathname.startsWith('/models/') ? MODELS : ROOT;
+  const rel = url.pathname.startsWith('/models/') ? url.pathname.slice(7) : url.pathname === '/' ? '/index.html' : url.pathname;
+  const path = normalize(join(base, decodeURIComponent(rel)));
+  if (!path.startsWith(base)) return res.writeHead(403).end();
   try {
     const data = await readFile(path);
     res.writeHead(200, { 'Content-Type': TYPES[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-store' }).end(data);

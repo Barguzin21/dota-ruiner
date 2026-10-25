@@ -83,12 +83,21 @@ function heroPage(app, C, D, P, params) {
       </section>
     </div>`;
 
+  // 3D, если для героя выгружены модели; иначе — картинка набора / портрет.
+  let viewer = null;
+  const look = $('#look');
   const drawStage = () => {
     const set = st.set && D.sets.find((s) => s.id === st.set);
     const lookSet = set; // st.set сбрасывается, как только меняют отдельный предмет
-    $('#look').innerHTML = lookSet?.img
-      ? `<img src="${icon(lookSet)}" alt=""><div class="lt">${esc(lookSet.ru)}</div>`
-      : `<img src="${heroTall(D.hero)}" alt="" style="object-fit:contain;height:90%"><div class="lt">${lookSet ? esc(lookSet.ru) : `${esc(h.localized_name)} — свой образ`}</div>`;
+    const title = lookSet ? esc(lookSet.ru) : `${esc(h.localized_name)} — свой образ`;
+    if (viewer) {
+      $('.lt', look).innerHTML = title;
+      viewer.wear(Object.values(st.eq));
+    } else {
+      look.innerHTML = lookSet?.img
+        ? `<img src="${icon(lookSet)}" alt=""><div class="lt">${title}</div>`
+        : `<img src="${heroTall(D.hero)}" alt="" style="object-fit:contain;height:90%"><div class="lt">${title}</div>`;
+    }
     let total = 0;
     let unknown = 0;
     $('#slots').innerHTML = slots.map((s) => {
@@ -235,4 +244,25 @@ function heroPage(app, C, D, P, params) {
   drawStage();
   drawList();
   drawLooks(ruleLooks());
+  start3d();
+
+  async function start3d() {
+    const v3 = await import('./viewer3d.js').catch(() => null);
+    const man = v3 && (await v3.hasModels(D.hero));
+    if (!man || !document.body.contains(look)) return;
+    look.classList.add('is3d');
+    look.innerHTML = `<div class="lt"></div><div class="l3d"><span class="badge3d">3D</span>
+      <button class="btn ghost sm" id="snap" title="Сохранить картинку">📸</button></div><div class="l3load"><div class="spinner"></div></div>`;
+    viewer = v3.createViewer(look, man);
+    window.addEventListener('hashchange', () => viewer.dispose(), { once: true });
+    $('#snap').onclick = () => {
+      const a = document.createElement('a');
+      a.download = `${D.hero}-look.png`;
+      a.href = viewer.snapshot();
+      a.click();
+    };
+    drawStage();
+    await viewer.ready.catch(() => toast('3D-модель не загрузилась'));
+    $('.l3load', look)?.remove();
+  }
 }
