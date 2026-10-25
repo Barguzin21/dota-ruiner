@@ -13,7 +13,7 @@ export const WEIGHTS = {
   support: { deaths: 0.12, deathCost: 0.06, discipline: 0.12, kp: 0.15, fights: 0.12, vision: 0.15, dmg: 0.07, xp: 0.05, utility: 0.1, lane: 0.06 },
 };
 export const METRIC_RU = {
-  farm: 'Фарм (GPM)', xp: 'Опыт (XPM)', dmg: 'Урон по героям', deaths: 'Мало смертей', deathCost: 'Цена смертей', discipline: 'Дисциплина',
+  farm: 'Фарм (GPM)', xp: 'Опыт (XPM)', dmg: 'Урон по героям', deaths: 'Мало смертей', deathCost: 'Мало потерь от смертей', discipline: 'Дисциплина',
   kp: 'Участие в убийствах', fights: 'Командные драки', lh: 'Добивания', tower: 'Давление на здания', lane: 'Стадия линий', vision: 'Обзор (варды)', utility: 'Контроль, хил, стаки',
 };
 

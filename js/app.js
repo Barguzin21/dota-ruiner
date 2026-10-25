@@ -2,6 +2,7 @@
 import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js';
 import { renderMatch } from './match.js';
 import { renderSets } from './wardrobe.js';
+import { coachPage, me, setMe } from './coach.js';
 import { rankName, analyze } from './analyze.js';
 
 const app = $('#app');
@@ -44,7 +45,7 @@ function home() {
           <input id="q" placeholder="ID матча, ссылка Dotabuff / OpenDota / Stratz / Steam или код для друзей" autocomplete="off" autofocus>
           <button class="btn big red">Разобрать</button>
         </form>
-        <div class="hint">Пример: <button type="button" data-ex="9060352207">матч 9060352207</button></div>
+        <div class="hint">Пример: <button type="button" data-ex="9060352207">матч 9060352207</button>${me() ? ` · <a href="#/player/${me()}">мои игры</a> · <a href="#/coach/${me()}">мой тренер</a>` : ''}</div>
         ${recent.length ? `<div class="recent"><span class="lbl">Недавние:</span>${recent.map((r) => `
           <a class="chip" href="#/match/${r.id}"><img src="${heroImg(r.hero)}" alt="">${r.id}${r.ruiner ? ` · руинер ${esc(r.ruiner)}` : ''}</a>`).join('')}</div>` : ''}
       </div>
@@ -89,7 +90,7 @@ async function player(id) {
       <div class="phead"><img src="${esc(p.avatarfull)}" alt=""><div>
         <h1>${esc(p.personaname)}</h1>
         <div class="psub">${rankName(prof.rank_tier)} · <a href="https://www.opendota.com/players/${id}" target="_blank" rel="noopener">OpenDota</a></div>
-      </div></div>
+      </div><div class="coach-acts" style="margin-left:auto"><a class="btn" href="#/coach/${id}">🎓 Тренер по 20 играм</a>${me() === +id ? '<span class="chip pos">это ты</span>' : `<button class="btn ghost" id="itsme">Это я</button>`}</div></div>
       <div class="panel reveal"><h3>Руин-статистика <small>последние ${Math.min(10, list.length)} матчей</small></h3><div class="ruinstats" id="rs"><div class="loading" style="padding:10px"><div class="spinner"></div>Разбираем матчи…</div></div></div>
       <div class="panel reveal"><h3>Последние матчи <small>нажми, чтобы узнать, кто заруинил</small></h3>
       <div class="mlist">${list.map((m) => {
@@ -103,6 +104,7 @@ async function player(id) {
           <div class="psub hide-s">${Math.floor(m.duration / 60)} мин</div></a>`;
       }).join('') || '<div class="empty">Нет матчей. Возможно, профиль скрыт в настройках Dota 2.</div>'}</div></div>`;
     fx(app);
+    $('#itsme')?.addEventListener('click', (e) => { setMe(id); e.target.outerHTML = '<span class="chip pos">это ты</span>'; });
     ruinStats(+id, list.slice(0, 10), c);
   } catch {
     app.innerHTML = `<div class="error">Не удалось открыть профиль ${esc(id)}. Проверь ссылку или включи «Показывать общедоступную историю матчей» в настройках Dota 2.</div>`;
@@ -146,6 +148,7 @@ async function route() {
   window.scrollTo(0, 0);
   if (page === 'match' && arg) return renderMatch(app, arg);
   if (page === 'player' && arg) return player(arg);
+  if (page === 'coach' && arg) return coachPage(app, arg);
   if (page === 'sets') return renderSets(app, arg, new URLSearchParams(location.hash.split('?')[1] || ''));
   return home();
 }
@@ -184,7 +187,7 @@ function embers() {
 
 // Тема: «Спорт» (по умолчанию) или «Неон». Искры только в неоне.
 const themeBtn = $('#theme');
-const paintTheme = () => (themeBtn.textContent = document.documentElement.classList.contains('sport') ? 'Тема: спорт' : 'Тема: неон');
+const paintTheme = () => (themeBtn.textContent = document.documentElement.classList.contains('sport') ? '◐ Спорт' : '◐ Неон');
 themeBtn.onclick = () => {
   const sport = document.documentElement.classList.toggle('sport');
   store.set('theme', sport ? 'sport' : 'neon');

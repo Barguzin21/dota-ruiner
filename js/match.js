@@ -1,12 +1,13 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
 import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, itemImg, store, toast, md, askAI, fx } from './util.js';
 import { analyze, defend, mmss, rankName } from './analyze.js';
+import { coachSection, me, itemTimings } from './coach.js';
 
 let A; // текущий разбор
 let C; // справочники
 
 const TABS = [
-  ['players', 'Игроки'], ['chart', 'График'], ['map', 'Карта'], ['episodes', 'Эпизоды'], ['lanes', 'Линии'], ['noms', 'Номинации'],
+  ['players', 'Игроки'], ['coach', 'Обучение'], ['chart', 'График'], ['map', 'Карта'], ['episodes', 'Эпизоды'], ['lanes', 'Линии'], ['noms', 'Номинации'],
   ['builds', 'Билды'], ['draft', 'Драфт'], ['accounts', 'Аккаунты'], ['chat', 'Чат'], ['ai', 'ИИ-разбор'],
 ];
 
@@ -212,7 +213,7 @@ function breakdown(p) {
 }
 
 function showTab(k, el) {
-  const f = { players, chart, map, episodes, lanes, noms, builds, draft, accounts, chat, ai }[k];
+  const f = { players, coach: (e) => coachSection(e, A, C), chart, map, episodes, lanes, noms, builds, draft, accounts, chat, ai }[k];
   f(el);
   fx(el);
 }
@@ -243,7 +244,7 @@ function players(el) {
 
 function prow(p) {
   const cls = p === A.ruiner ? 'ruiner' : p === A.mvp ? 'mvp' : '';
-  const tag = p === A.ruiner ? '<span class="tag r">РУИНЕР</span>' : p === A.mvp ? '<span class="tag m">MVP</span>' : '';
+  const tag = (p === A.ruiner ? '<span class="tag r">РУИНЕР</span>' : p === A.mvp ? '<span class="tag m">MVP</span>' : '') + (me() && p.accountId === me() ? '<span class="tag you">ТЫ</span>' : '');
   const top = p.neg[0] || p.pos[0];
   return `<div class="prow ${cls}" data-i="${p.idx}">
     <img class="h" src="${portrait(p)}" alt="">
@@ -474,9 +475,14 @@ function builds(el) {
     <div class="panel reveal" data-build="${p.idx}"><div class="teamhead"><span>${esc(p.hero)} <span class="psub">— ${esc(p.name)}, поз. ${p.role}</span>${p === A.ruiner ? '<span class="tag r">РУИНЕР</span>' : ''}</span><span class="${p.win ? 'rad' : 'dire'}">${p.win ? 'победа' : 'поражение'}</span></div>
     <div class="timeline">${p.purchases.filter((x) => core(x.key)).map((x) => `<div><img src="${itemImg(x.key)}" alt="" title="${esc(C.itemsByKey[x.key]?.name || x.key)}" loading="lazy">${mmss(x.time)}</div>`).join('') || '<span class="psub">Нет данных о покупках</span>'}</div>
     <div class="meta" data-meta><span class="lbl">Мета на герое: загружаем…</span></div>
+    <div class="tmchips" data-tm></div>
     ${p.neg.filter((x) => x.title === 'Нет сейв-предметов').map((x) => `<div class="psub" style="margin-top:8px;color:#ffb3b3">⚠ ${esc(x.text)}</div>`).join('')}</div>`).join('');
   // Популярные предметы на героях — по одному запросу на героя, параллельно.
   list.forEach(async (p) => {
+    itemTimings(p.heroId, p.purchases, C.itemsByKey).then((tl) => {
+      const box = $(`[data-build="${p.idx}"] [data-tm]`, el);
+      if (box && tl.length) box.innerHTML = `<span class="lbl">Тайминги:</span>${tl.map((x) => `<span class="chip ${x.late > 0.7 ? 'neg' : x.late < 0.3 ? 'pos' : ''}" title="обычно к ${x.median ? mmss(x.median) : '—'}"><img src="${itemImg(x.key)}" alt="">${mmss(x.time)} · ${x.late > 0.7 ? `позже ${Math.round(x.late * 100)}%` : x.late < 0.3 ? `быстрее ${Math.round((1 - x.late) * 100)}%` : 'норма'}</span>`).join('')}`;
+    });
     const pop = await getJSON(`${OD}/heroes/${p.heroId}/itemPopularity`).catch(() => null);
     const box = $(`[data-build="${p.idx}"] [data-meta]`, el);
     if (!box) return;

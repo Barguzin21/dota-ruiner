@@ -66,3 +66,7 @@
 /* переключатель темы */
 .themebtn { border: 1px solid var(--line); background: none; color: var(--muted); border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 600; }
 .sport .themebtn { border-radius: 3px; font-family: var(--display); letter-spacing: .08em; text-transform: uppercase; }
+.sport .mistake .mn { border-radius: 3px; background: var(--red); color: #fff; border: 0; }
+.sport .drill { border-radius: 3px; }
+.sport .deaths span { border-radius: 2px; font-family: var(--mono); }
+.sport .tag.you { border-radius: 2px; }
