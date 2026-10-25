@@ -1,7 +1,7 @@
 // Обучение: разбор «моих» ошибок в матче, тайминги предметов, страница-тренер по последним играм.
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610252144';
-import { analyze, mmss, METRIC_RU } from './analyze.js?v=202610252144';
-import { icon as ic } from './icons.js?v=202610252144';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610252155';
+import { analyze, mmss, METRIC_RU } from './analyze.js?v=202610252155';
+import { icon as ic } from './icons.js?v=202610252155';
 
 // Мой аккаунт (кнопка «Это я»). По нему подсвечиваем «себя» в матчах и строим тренера.
 export const me = () => store.get('me', null);
@@ -129,6 +129,49 @@ async function coachAI(btn, p, A) {
   }
 }
 
+// Разбор последних игр игрока. Готовые разборы кэшируются на время сессии: тренер, сравнение,
+// друзья и вызовы часто смотрят одни и те же матчи. onStep(i, games) → false прерывает (ушли со страницы).
+const analyzed = new Map();
+export async function loadGames(id, list, C, onStep = () => true) {
+  const games = [];
+  for (const [i, m] of list.entries()) {
+    let a = analyzed.get(m.match_id);
+    if (a === undefined) {
+      const full = await getJSON(`${OD}/matches/${m.match_id}`).catch(() => null);
+      a = full?.players?.length ? analyze(full, { heroes: C.heroes, itemsById: C.itemsById }) : null;
+      analyzed.set(m.match_id, a);
+      await new Promise((r) => setTimeout(r, 700)); // OpenDota пускает ~60 запросов в минуту
+    }
+    const p = a?.players.find((x) => x.accountId === +id);
+    if (p) games.push({ a, p, id: m.match_id, ruiner: a.ruiner === p, mvp: a.mvp === p });
+    if (onStep(i, games) === false) return null;
+  }
+  return games;
+}
+
+// Сводка по разобранным играм: то, что показывают тренер и сравнение.
+export function summarize(games) {
+  const n = games.length || 1;
+  const avg = (f) => games.reduce((s, g) => s + f(g), 0) / n;
+  const counts = {};
+  for (const g of games) for (const x of g.p.neg) counts[x.title] = (counts[x.title] || 0) + 1;
+  const profile = Object.keys(METRIC_RU).map((k) => {
+    const v = games.filter((g) => g.p.breakdown.some((b) => b.key === k)).map((g) => g.p.m01[k]);
+    return v.length ? { k, label: METRIC_RU[k], v: Math.round(v.reduce((s, x) => s + x, 0) / v.length * 100) } : null;
+  }).filter(Boolean);
+  const heroes = {};
+  for (const g of games) {
+    const h = (heroes[g.p.heroKey] ||= { key: g.p.heroKey, name: g.p.hero, n: 0, w: 0, s: 0 });
+    h.n++; h.w += g.p.win ? 1 : 0; h.s += g.p.score;
+  }
+  return {
+    n: games.length, wr: Math.round(games.filter((g) => g.p.win).length / n * 100), ruiner: games.filter((g) => g.ruiner).length,
+    mvp: games.filter((g) => g.mvp).length, score: Math.round(avg((g) => g.p.score)), deaths: avg((g) => g.p.d), gpm: Math.round(avg((g) => g.p.gpm)),
+    kp: Math.round(avg((g) => g.p.kp) * 100), mistakes: Object.entries(counts).sort((x, y) => y[1] - x[1]), profile,
+    heroes: Object.values(heroes).sort((x, y) => y.n - x.n),
+  };
+}
+
 // ---------- страница-тренер: последние игры игрока
 export async function coachPage(app, id) {
   id = +id;
@@ -152,25 +195,14 @@ export async function coachPage(app, id) {
   $('[data-me]', app)?.addEventListener('click', (e) => { setMe(id); e.target.outerHTML = '<span class="chip pos">это ты</span>'; });
   fx(app);
 
-  const games = [];
-  for (const [i, m] of list.entries()) {
-    const key = `m:${m.match_id}`;
-    let full = null;
-    try { full = JSON.parse(sessionStorage.getItem(key)); } catch { /* нет кэша */ }
-    if (!full) {
-      full = await getJSON(`${OD}/matches/${m.match_id}`).catch(() => null);
-      await new Promise((r) => setTimeout(r, 900)); // OpenDota пускает ~60 запросов в минуту
-    }
-    if (!document.body.contains($('#cpout'))) return;
-    if (full?.players?.length) {
-      const a = analyze(full, { heroes: C.heroes, itemsById: C.itemsById });
-      const p = a.players.find((x) => x.accountId === id);
-      if (p) games.push({ a, p, id: m.match_id, ruiner: a.ruiner === p, mvp: a.mvp === p });
-    }
+  const games = await loadGames(id, list, C, (i, got) => {
+    if (!document.body.contains($('#cpout'))) return false;
     $('#cpbar').style.width = `${((i + 1) / list.length) * 100}%`;
     $('#cpstat').textContent = `Разбираем матчи: ${i + 1} из ${list.length}`;
-    if ((i + 1) % 4 === 0 || i === list.length - 1) drawCoach($('#cpout'), games, C, name);
-  }
+    if ((i + 1) % 4 === 0 || i === list.length - 1) drawCoach($('#cpout'), got, C, name);
+    return true;
+  });
+  if (!games) return;
   $('#cpstat').textContent = `Готово: разобрано ${games.length} игр`;
 }
 

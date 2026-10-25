@@ -308,3 +308,38 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 @media (max-width: 900px) { .coach-grid { grid-template-columns: minmax(0, 1fr); } }
 .coach-grid > *, .coach-side > * { min-width: 0; }
 @media (max-width: 560px) { .ruinstats, .stats-band { grid-template-columns: repeat(2, minmax(0, 1fr)); } .phead { flex-wrap: wrap; } .phead .coach-acts { margin-left: 0; } }
+
+/* мои катки на главной */
+.mine { margin-top: 24px; }
+.mine-list { display: grid; gap: 4px; }
+.mine-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) 90px 110px 90px; gap: 12px; align-items: center; padding: 6px 10px; border-radius: 10px; text-decoration: none; border-left: 3px solid var(--line); }
+.mine-row:hover { background: rgba(255, 255, 255, .03); }
+.mine-row.w { border-left-color: var(--green); }
+.mine-row.l { border-left-color: var(--red); }
+.mine-row img { width: 56px; height: 32px; border-radius: 5px; object-fit: cover; }
+.mine-links { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.mine-links a { color: var(--blue); }
+@media (max-width: 560px) { .mine-row { grid-template-columns: 48px minmax(0, 1fr) auto; } .mine-row img { width: 48px; height: 27px; } .mine-row > :nth-child(3), .mine-row > :nth-child(5) { display: none; } }
+
+/* сравнение игроков */
+.cmp-head { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin: 22px 0 14px; }
+.cmp-who { display: flex; align-items: center; gap: 12px; text-decoration: none; min-width: 0; }
+.cmp-head .cmp-who:last-child { flex-direction: row-reverse; text-align: right; }
+.cmp-who img { width: 56px; height: 56px; border-radius: 12px; }
+.cmp-who b { font: 800 20px var(--display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-vs { font: 900 22px var(--display); color: var(--red); }
+.cmp-verdict { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.cmp-verdict b { font: 800 18px var(--display); color: var(--gold); }
+.cmp-verdict span { color: var(--muted); }
+.cmp-row { display: grid; grid-template-columns: 56px 1fr 1fr 56px; grid-template-areas: "l bl br r" "t t t t"; gap: 2px 8px; align-items: center; padding: 6px 0; }
+.cmp-row > .num:first-child { grid-area: l; text-align: right; }
+.cmp-row > .num:nth-of-type(2) { grid-area: r; }
+.cmp-row > em { grid-area: t; text-align: center; font-style: normal; font-size: 12px; color: var(--muted); }
+.cmp-bar { height: 10px; background: rgba(255, 255, 255, .05); border-radius: 99px; position: relative; overflow: hidden; }
+.cmp-bar i { position: absolute; top: 0; bottom: 0; width: var(--w); background: rgba(255, 255, 255, .22); border-radius: 99px; }
+.cmp-bar i.l { right: 0; }
+.cmp-bar i.r { left: 0; }
+.cmp-bar i.win { background: linear-gradient(90deg, var(--red), var(--gold)); }
+.cmp-bar i.l.win { background: linear-gradient(270deg, var(--red), var(--gold)); }
+.cmp-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 700px) { .cmp-two { grid-template-columns: 1fr; } .cmp-who b { font-size: 15px; } .cmp-who img { width: 40px; height: 40px; } .cmp-row { grid-template-columns: 44px 1fr 1fr 44px; } }

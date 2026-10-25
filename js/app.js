@@ -1,11 +1,12 @@
 // Роутер, главная, страница игрока.
-import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610252144';
-import { renderMatch } from './match.js?v=202610252144';
-import { renderSets } from './wardrobe.js?v=202610252144';
-import { coachPage, me, setMe } from './coach.js?v=202610252144';
-import { smurfPage } from './smurf.js?v=202610252144';
-import { icon as ic } from './icons.js?v=202610252144';
-import { rankName, analyze } from './analyze.js?v=202610252144';
+import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610252155';
+import { renderMatch } from './match.js?v=202610252155';
+import { renderSets } from './wardrobe.js?v=202610252155';
+import { coachPage, me, setMe } from './coach.js?v=202610252155';
+import { comparePage } from './compare.js?v=202610252155';
+import { smurfPage } from './smurf.js?v=202610252155';
+import { icon as ic } from './icons.js?v=202610252155';
+import { rankName, analyze } from './analyze.js?v=202610252155';
 
 const app = $('#app');
 const STEAM64 = 76561197960265728n;
@@ -56,6 +57,7 @@ function home() {
         <div class="cap">Примерочная 3D<small>крути героя и собирай образ с ценами →</small></div>
       </a>
     </div>
+    ${me() ? '<div class="panel reveal mine" id="mine"><h3>Мои катки <small>последние 5 игр</small></h3><div class="mine-list"><div class="spinner" style="width:22px;height:22px"></div></div></div>' : ''}
     <div class="features">
       <div class="feature tilt reveal"><div class="ico">${ic('target')}</div><b>Руинер, MVP и проценты</b><p>11 метрик против перцентилей на том же герое, доля руина каждого и устойчивость вердикта.</p></div>
       <div class="feature tilt reveal"><div class="ico">${ic('map')}</div><b>Карта и линии</b><p>Смерти и варды на карте с ползунком времени, кто выиграл каждую линию к 10:00.</p></div>
@@ -73,7 +75,34 @@ function home() {
     <input id="sidq" placeholder="Например 76561198452324571 или steamcommunity.com/profiles/…" autocomplete="off"><div id="sidout" class="sidout"></div></div>`);
   $('#sidq').oninput = (e) => ($('#sidout').innerHTML = steamIds(e.target.value));
   fx(app);
-  import('./viewer3d.js?v=202610252144').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
+  if (me()) myMatches(me());
+  import('./viewer3d.js?v=202610252155').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
+}
+
+// «Мои катки»: 5 последних игр, пометка руинер/MVP и влияние появляются по мере разбора.
+async function myMatches(id) {
+  const box = $('#mine .mine-list');
+  const c = await consts();
+  const list = await getJSON(`${OD}/players/${id}/recentMatches`).catch(() => []);
+  if (!box?.isConnected) return;
+  if (!list.length) { box.innerHTML = '<p class="psub">Нет открытых матчей. Проверь, что история в Dota 2 не скрыта.</p>'; return; }
+  box.innerHTML = list.slice(0, 5).map((m) => {
+    const win = (m.player_slot < 128) === m.radiant_win;
+    const h = c.heroes[m.hero_id] || {};
+    const key = (h.name || '').replace('npc_dota_hero_', '');
+    return `<a class="mine-row ${win ? 'w' : 'l'}" href="#/match/${m.match_id}" data-m="${m.match_id}"><img src="${heroImg(key)}" alt="">
+      <span class="pname">${esc(h.localized_name || '')}</span><span class="num">${m.kills}/${m.deaths}/${m.assists}</span>
+      <span class="mine-tag" data-tag>…</span><span class="${win ? 'rad' : 'dire'}">${win ? 'Победа' : 'Поражение'}</span></a>`;
+  }).join('') + `<div class="mine-links"><a href="#/player/${id}">все матчи</a> · <a href="#/coach/${id}">тренер</a> · <a href="#/compare/${id}">сравнить с другом</a> · <a href="#/friends">друзья</a></div>`;
+  for (const m of list.slice(0, 5)) {
+    const full = await getJSON(`${OD}/matches/${m.match_id}`).catch(() => null);
+    const tag = $(`[data-m="${m.match_id}"] [data-tag]`);
+    if (!tag) return;
+    if (!full?.players?.length) { tag.textContent = ''; continue; }
+    const a = analyze(full, { heroes: c.heroes, itemsById: c.itemsById });
+    const p = a.players.find((x) => x.accountId === +id);
+    tag.innerHTML = !p ? '' : a.ruiner === p ? '<span class="tag r">РУИНЕР</span>' : a.mvp === p ? '<span class="tag m">MVP</span>' : `<span class="psub">влияние ${p.score}</span>`;
+  }
 }
 
 // Все форматы Steam ID из одного ввода.
@@ -134,7 +163,7 @@ async function player(id) {
       <div class="phead"><img src="${esc(p.avatarfull)}" alt=""><div>
         <h1>${esc(p.personaname)}</h1>
         <div class="psub">${rankName(prof.rank_tier)} · <a href="https://www.opendota.com/players/${id}" target="_blank" rel="noopener">OpenDota</a></div>
-      </div><div class="coach-acts" style="margin-left:auto"><a class="btn" href="#/coach/${id}">${ic('cap')} Тренер по 20 играм</a><a class="btn ghost" href="#/smurf/${id}">${ic('usersearch')} Проверка на смурфа</a>${me() === +id ? '<span class="chip pos">это ты</span>' : `<button class="btn ghost" id="itsme">Это я</button>`}</div></div>
+      </div><div class="coach-acts" style="margin-left:auto"><a class="btn" href="#/coach/${id}">${ic('cap')} Тренер по 20 играм</a><a class="btn ghost" href="#/smurf/${id}">${ic('usersearch')} Проверка на смурфа</a><a class="btn ghost" href="#/compare/${id}">${ic('swords')} Сравнить</a>${me() === +id ? '<span class="chip pos">это ты</span>' : `<button class="btn ghost" id="itsme">Это я</button>`}</div></div>
       <div class="panel reveal"><h3>Руин-статистика <small>последние ${Math.min(10, list.length)} матчей</small></h3><div class="ruinstats" id="rs"><div class="loading" style="padding:10px"><div class="spinner"></div>Разбираем матчи…</div></div></div>
       <div class="panel reveal"><h3>Последние матчи <small>нажми, чтобы узнать, кто заруинил</small></h3>
       <div class="mlist">${list.map((m) => {
@@ -195,6 +224,7 @@ async function route() {
   if (page === 'coach' && arg) return coachPage(app, arg);
   if (page === 'coach') return coachLanding();
   if (page === 'smurf' && arg) return smurfPage(app, arg);
+  if (page === 'compare' && arg) return comparePage(app, arg, location.hash.split('/')[3]);
   if (page === 'sets') return renderSets(app, arg, new URLSearchParams(location.hash.split('?')[1] || ''));
   return home();
 }
