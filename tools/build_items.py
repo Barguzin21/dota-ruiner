@@ -11,6 +11,7 @@ from PIL import Image
 
 import kv
 import vpk
+from build_icons import vtex
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAK = sys.argv[1] if len(sys.argv) > 1 else r'C:/Program Files (x86)/Steam/steamapps/common/dota 2 beta/game/dota/pak01_dir.vpk'
@@ -50,12 +51,17 @@ def icon(item, out_id):
     if not inv or key not in entries:
         return False
     raw = vpk.read(PAK, entries[key], start)
-    i = raw.find(b'\x89PNG')
-    if i < 0:
-        return False
     dst = os.path.join(ROOT, 'img', 'items', f'{out_id}.webp')
     if not os.path.exists(dst):
-        img = Image.open(io.BytesIO(raw[i:])).convert('RGBA')
+        i = raw.find(b'\x89PNG')
+        if i >= 0:
+            img = Image.open(io.BytesIO(raw[i:])).convert('RGBA')
+        else:
+            # у новых предметов иконка — DXT-текстура 256x256: картинка 256x170 сверху, ниже мусор
+            img = vtex(raw)
+            if img is None:
+                return False
+            img = img.crop((0, 0, img.width, round(img.width * 170 / 256)))
         img.thumbnail((ICON * 2, ICON))  # иконки 256x170 → ширина до 224
         img.save(dst, 'WEBP', quality=78)
     return True

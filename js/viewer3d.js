@@ -81,7 +81,7 @@ export function createViewer(el, manifest, opt = {}) {
   shadow.rotation.x = -Math.PI / 2;
   scene.add(shadow);
 
-  let hero, skeleton, boneIdx, mixer;
+  let hero, skeleton, boneIdx, mixer, home;
   const worn = new Map(); // id → mesh[]
   const clock = new THREE.Clock();
   let alive = true;
@@ -130,6 +130,7 @@ export function createViewer(el, manifest, opt = {}) {
     camera.position.set(center.x, center.y + hgt * 0.1, center.z + hgt * (opt.controls === false ? 2.5 : 3.1));
     camera.near = hgt / 100;
     camera.far = hgt * 50;
+    home = [camera.position.clone(), controls.target.clone()];
     controls.minDistance = hgt * 0.8;
     controls.maxDistance = hgt * 5;
     resize();
@@ -195,6 +196,13 @@ export function createViewer(el, manifest, opt = {}) {
       await sync();
     },
     snapshot: () => renderer.domElement.toDataURL('image/png'),
+    // кадр спереди с исходной точки: «2D» в примерочной, чёткий в разрешении экрана
+    photo() {
+      if (home) { camera.position.copy(home[0]); controls.target.copy(home[1]); controls.update(); }
+      mixer?.update(0); // поза из анимации, даже если цикл ещё ни разу не крутился (иначе оружие лежит у ног)
+      renderer.render(scene, camera);
+      return renderer.domElement.toDataURL('image/png');
+    },
     pause(v) { paused = v; if (!v) clock.getDelta(); },
     resetView() { controls.autoRotate = true; },
     dispose() {
