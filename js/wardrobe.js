@@ -1,6 +1,6 @@
 // Примерочная: герои → наборы и предметы по слотам, цены, образы по бюджету (правила + ИИ).
-import { $, $$, esc, rub, consts, heroTall, getJSON, toast, askAI, API, store } from './util.js?v=202610260127';
-import { icon as ic } from './icons.js?v=202610260127';
+import { $, $$, esc, rub, consts, heroTall, heroFull, getJSON, toast, askAI, API, store } from './util.js?v=202610260138';
+import { icon as ic } from './icons.js?v=202610260138';
 
 const RAR = { common: ['Обычный', '#b0c3d9'], uncommon: ['Необычный', '#5e98d9'], rare: ['Редкий', '#4b69ff'], mythical: ['Мифический', '#8847ff'],
   legendary: ['Легендарный', '#d32ce6'], immortal: ['Бессмертный', '#e4ae39'], arcana: ['Аркана', '#ade55c'], ancient: ['Древний', '#eb4b4b'], seasonal: ['Сезонный', '#fff34f'] };
@@ -86,34 +86,46 @@ function heroPage(app, C, D, P, params) {
       </section>
     </div>`;
 
-  // 3D, если для героя выгружены модели; иначе, картинка набора / портрет.
+  // 3D, если для героя выгружены модели; 2D — рендер набора из игры (448×678, как на странице наборов в клиенте).
   let viewer = null;
+  let v3mod = null; // модуль и модели героя: есть — показываем переключатель 3D / 2D
   const look = $('#look');
-  // 2D: модель на паузе, вместо неё кадр спереди (картинки наборов из игры всего 169×112 и мылят)
-  const flat = () => store.get('view3', '3d') === '2d';
-  let photoN = 0;
-  async function paintFlat() {
-    look.classList.toggle('flat', flat());
-    $$('.viewsw button', look).forEach((b) => b.classList.toggle('on', b.dataset.view === (flat() ? '2d' : '3d')));
-    viewer.pause(flat());
-    if (!flat()) return;
-    const n = ++photoN;
-    await viewer.ready.catch(() => {});
-    await viewer.wear(Object.values(st.eq));
-    if (n === photoN && viewer && flat()) $('.l2d', look).src = viewer.photo();
+  const flat = () => !v3mod || store.get('view3', '3d') === '2d';
+  // Свой образ из разных наборов: показываем набор, из которого надето больше всего, и подписываем это.
+  function flatPic(set) {
+    if (set) return set.p2d ? { src: `img/sets/${set.id}.webp` } : { src: heroFull(D.hero), note: 'у этого набора нет картинки в игре' };
+    const worn = new Set(Object.values(st.eq).map(Number));
+    let best = null;
+    let n = 0;
+    for (const x of D.sets) {
+      const k = x.p2d ? x.items.filter((i) => worn.has(i)).length : 0;
+      if (k > n) { n = k; best = x; }
+    }
+    if (!best) return { src: heroFull(D.hero) };
+    return { src: `img/sets/${best.id}.webp`, note: n === best.items.length ? '' : `ближайший набор: ${best.ru}` };
   }
+  const viewSw = () => (v3mod ? `<div class="viewsw" role="group" aria-label="Вид героя">${['3d', '2d'].map((v) => `<button data-view="${v}" class="${(flat() ? '2d' : '3d') === v ? 'on' : ''}">${v.toUpperCase()}</button>`).join('')}</div>` : '');
+  const bindSw = () => $$('.viewsw button', look).forEach((b) => (b.onclick = () => {
+    if ((b.dataset.view === '2d') === flat()) return;
+    store.set('view3', b.dataset.view);
+    if (!flat()) return mount3d();
+    viewer?.dispose();
+    viewer = null;
+    look.classList.remove('is3d');
+    drawStage();
+  }));
   const drawStage = () => {
     const set = st.set && D.sets.find((s) => s.id === st.set);
     const lookSet = set; // st.set сбрасывается, как только меняют отдельный предмет
-    const title = lookSet ? esc(lookSet.ru) : `${esc(h.localized_name)}, свой образ`;
+    const plain = Object.entries(st.eq).every(([sl, id]) => D.defaults[sl]?.id === id);
+    const title = lookSet ? esc(lookSet.ru) : `${esc(h.localized_name)}, ${plain ? 'стандартный' : 'свой'} образ`;
     if (viewer) {
       $('.lt', look).innerHTML = title;
-      if (flat()) paintFlat();
-      else viewer.wear(Object.values(st.eq));
+      viewer.wear(Object.values(st.eq));
     } else {
-      look.innerHTML = lookSet?.img
-        ? `<img src="${icon(lookSet)}" alt=""><div class="lt">${title}</div>`
-        : `<img src="${heroTall(D.hero)}" alt="" style="object-fit:contain;height:90%"><div class="lt">${title}</div>`;
+      const pic = flatPic(lookSet);
+      look.innerHTML = `<img class="l2d" src="${pic.src}" alt=""><div class="lt">${title}${pic.note ? `<small>${esc(pic.note)}</small>` : ''}</div>${v3mod ? `<div class="l3d">${viewSw()}</div>` : ''}`;
+      bindSw();
     }
     let total = 0;
     let unknown = 0;
@@ -251,7 +263,7 @@ function heroPage(app, C, D, P, params) {
   // картинка набора, а не снимок 3D: модель могла ещё не загрузиться, и снимок выходит пустым
   const lookImg = () => {
     const set = st.set && D.sets.find((x) => x.id === st.set);
-    return set?.img ? icon(set) : heroTall(D.hero);
+    return flatPic(set).src;
   };
   function drawCompare() {
     const A = st.saved;
@@ -325,24 +337,32 @@ function heroPage(app, C, D, P, params) {
   start3d();
 
   async function start3d() {
-    const v3 = await import('./viewer3d.js?v=202610260127').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610260138').catch(() => null);
     const man = v3 && (await v3.hasModels(D.hero));
     if (!man || !document.body.contains(look)) return;
+    v3mod = [v3, man];
+    if (flat()) drawStage(); // 2D: картинка с переключателем, модель не грузим
+    else mount3d();
+  }
+
+  async function mount3d() {
+    const [v3, man] = v3mod;
     look.classList.add('is3d');
-    look.innerHTML = `<div class="lt"></div><img class="l2d" alt=""><div class="l3d"><div class="viewsw" role="group" aria-label="Вид героя"><button data-view="3d">3D</button><button data-view="2d">2D</button></div>
+    look.innerHTML = `<div class="lt"></div><div class="l3d">${viewSw()}
       <button class="btn ghost sm" id="snap" title="Сохранить картинку">${ic('camera')}</button></div><div class="l3load"><div class="spinner"></div></div>`;
     viewer = v3.createViewer(look, man);
-    $$('.viewsw button', look).forEach((b) => (b.onclick = () => { store.set('view3', b.dataset.view); paintFlat(); }));
-    window.addEventListener('hashchange', () => viewer?.dispose(), { once: true });
+    bindSw();
+    const v = viewer;
+    window.addEventListener('hashchange', () => v.dispose(), { once: true });
     $('#snap').onclick = () => {
       const a = document.createElement('a');
       a.download = `${D.hero}-look.png`;
-      a.href = flat() ? viewer.photo() : viewer.snapshot();
+      a.href = viewer.snapshot();
       a.click();
     };
     drawStage();
-    if (!flat()) paintFlat();
-    await viewer.ready.catch(() => toast('3D-модель не загрузилась'));
+    await v.ready.catch(() => toast('3D-модель не загрузилась'));
     $('.l3load', look)?.remove();
   }
+
 }
