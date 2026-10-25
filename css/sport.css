@@ -1,0 +1,68 @@
+/* Тема «Спорт»: строгий турнирный дашборд + газетные акценты. Включается классом .sport на <html>. */
+.sport {
+  --bg: #0d0e10; --panel: #15171a; --panel2: #1c1f23; --line: #2a2e34; --text: #f2f2ee; --muted: #8d9198;
+  --red: #e8322c; --gold: #f0b429; --blue: #4c8dff; --r: 4px;
+  --display: 'Oswald', 'Arial Narrow', sans-serif; --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+.sport body { background: var(--bg); font-family: Inter, system-ui, sans-serif; }
+/* убираем декор неона */
+.sport .bg, .sport #embers, .sport .gyro, .sport .msec-n, .sport .glitch::before, .sport .glitch::after, .sport .tilt::after { display: none !important; }
+.sport .panel, .sport .mini, .sport .vcard, .sport .reason, .sport .feature, .sport .lane, .sport .tile, .sport .pill {
+  background: var(--panel) !important; backdrop-filter: none; border-radius: var(--r) !important; box-shadow: none !important; border: 1px solid var(--line);
+}
+.sport .panel::before, .sport .vcard::before, .sport .mini::before, .sport .feature::before { display: none; }
+.sport .tilt, .sport .tilt:hover, .sport .reveal.tilt.in { transform: none !important; }
+.sport .msec .panel.reveal { transform: none; }
+.sport .btn { border-radius: var(--r); text-transform: uppercase; letter-spacing: .06em; font-family: var(--display); font-weight: 600; }
+.sport .chip, .sport .share, .sport .tag, .sport .filters button, .sport .seg, .sport .seg button { border-radius: 3px; }
+
+/* типографика: сжатый гротеск для заголовков, моноширинные цифры */
+.sport .logo, .sport h1, .sport h2, .sport h3, .sport .msec-t, .sport .vlabel, .sport .vname, .sport .hero-title { font-family: var(--display) !important; text-transform: uppercase; letter-spacing: .02em; }
+.sport .num, .sport .tile .num, .sport .pill b, .sport .ring b, .sport .share, .sport .ep .tm, .sport .bdr b, .sport .prow > .num { font-family: var(--mono) !important; font-weight: 700; letter-spacing: -.02em; }
+.sport .lbl, .sport .prow.thead span, .sport .tile .lbl { font-family: var(--display); letter-spacing: .1em; }
+.sport .hero-title em { background: none; color: var(--red); animation: none; -webkit-text-fill-color: var(--red); }
+.sport .logo span { text-shadow: none; }
+
+/* шапка — табло */
+.sport .top { background: #000; border-bottom: 3px solid var(--red); backdrop-filter: none; }
+.sport .top nav a.on { background: var(--red); border-color: var(--red); color: #fff; border-radius: 3px; }
+
+/* разделы: заголовок как в газете — жирная линия сверху */
+.sport .msec { border-top: 3px solid var(--text); padding-top: 10px; margin-top: 40px; }
+.sport .msec-t { font-size: clamp(22px, 3vw, 30px); }
+.sport .tabs { background: var(--bg); border-bottom: 1px solid var(--line); }
+.sport .tab-ind { background: var(--red); border: 0; border-radius: 3px; }
+.sport .tabs button.on { color: #fff; }
+
+/* вердикт — «РАЗЫСКИВАЕТСЯ»: ч/б портрет, красный штамп */
+.sport .vcard:not(.mvp) { background: var(--panel) !important; border: 2px solid var(--text) !important; }
+.sport .vcard:not(.mvp) .vstage { background: #000; filter: grayscale(1) contrast(1.15); border-radius: 2px; }
+.sport .vcard:not(.mvp) .vstage::after {
+  content: 'РУИНЕР НАЙДЕН'; position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%) rotate(-8deg); z-index: 3;
+  font: 700 20px var(--display); letter-spacing: .08em; color: var(--red); border: 3px solid var(--red); padding: 4px 10px; background: rgba(0, 0, 0, .55); white-space: nowrap;
+}
+.sport .vlabel { color: var(--red); text-shadow: none !important; font-weight: 700; }
+.sport .vcard.mvp { border-left: 4px solid var(--gold) !important; }
+.sport .vcard.mvp .vlabel { color: var(--gold); }
+.sport .ring .rf { filter: none; }
+.sport .reason { border-left: 3px solid var(--red) !important; }
+.sport .reason.pos { border-left-color: var(--green) !important; }
+
+/* таблицы — плотно, с зеброй */
+.sport .prow { border-radius: 0; border: 0; border-bottom: 1px solid var(--line); padding: 8px 10px; }
+.sport .prow:not(.thead):nth-of-type(even) { background: rgba(255, 255, 255, .015); }
+.sport .prow:not(.thead):hover { transform: none; background: var(--panel2); }
+.sport .prow.ruiner { background: rgba(232, 50, 44, .1); box-shadow: inset 4px 0 0 var(--red); }
+.sport .prow.mvp { background: rgba(240, 180, 41, .07); box-shadow: inset 4px 0 0 var(--gold); }
+.sport .bar { border-radius: 0; height: 6px; }
+.sport .bar i { border-radius: 0; box-shadow: none; }
+.sport .tag { font-family: var(--display); letter-spacing: .08em; }
+
+/* главная */
+.sport .home3d { border-radius: var(--r); border: 1px solid var(--line); background: #000; }
+.sport .hero-title { font-size: clamp(44px, 7.5vw, 96px); line-height: .95; }
+.sport .search input { border-radius: var(--r); background: #000; }
+
+/* переключатель темы */
+.themebtn { border: 1px solid var(--line); background: none; color: var(--muted); border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 600; }
+.sport .themebtn { border-radius: 3px; font-family: var(--display); letter-spacing: .08em; text-transform: uppercase; }

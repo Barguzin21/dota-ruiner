@@ -182,6 +182,15 @@ function embers() {
   tick();
 }
 
+// Тема: «Спорт» (по умолчанию) или «Неон». Искры только в неоне.
+const themeBtn = $('#theme');
+const paintTheme = () => (themeBtn.textContent = document.documentElement.classList.contains('sport') ? 'Тема: спорт' : 'Тема: неон');
+themeBtn.onclick = () => {
+  const sport = document.documentElement.classList.toggle('sport');
+  store.set('theme', sport ? 'sport' : 'neon');
+  paintTheme();
+};
+paintTheme();
 embers();
 window.addEventListener('hashchange', route);
 route();

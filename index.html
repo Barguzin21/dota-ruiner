@@ -8,10 +8,12 @@
 <link rel="icon" href="img/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/v2.css">
 <link rel="stylesheet" href="css/v3.css">
+<link rel="stylesheet" href="css/sport.css">
+<script>try{document.documentElement.classList.toggle("sport",localStorage.getItem("theme")!=='"neon"')}catch(e){document.documentElement.classList.add("sport")}</script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 </head>
 <body>
@@ -21,6 +23,7 @@
   <nav>
     <a href="#/" data-nav="match">Разбор</a>
     <a href="#/sets" data-nav="sets">Примерочная</a>
+    <button class="themebtn" id="theme" type="button" title="Сменить оформление"></button>
   </nav>
 </header>
 <main id="app"></main>
