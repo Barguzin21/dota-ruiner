@@ -1,11 +1,11 @@
 // Роутер, главная, страница игрока.
-import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610252139';
-import { renderMatch } from './match.js?v=202610252139';
-import { renderSets } from './wardrobe.js?v=202610252139';
-import { coachPage, me, setMe } from './coach.js?v=202610252139';
-import { smurfPage } from './smurf.js?v=202610252139';
-import { icon as ic } from './icons.js?v=202610252139';
-import { rankName, analyze } from './analyze.js?v=202610252139';
+import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610252144';
+import { renderMatch } from './match.js?v=202610252144';
+import { renderSets } from './wardrobe.js?v=202610252144';
+import { coachPage, me, setMe } from './coach.js?v=202610252144';
+import { smurfPage } from './smurf.js?v=202610252144';
+import { icon as ic } from './icons.js?v=202610252144';
+import { rankName, analyze } from './analyze.js?v=202610252144';
 
 const app = $('#app');
 const STEAM64 = 76561197960265728n;
@@ -73,7 +73,7 @@ function home() {
     <input id="sidq" placeholder="Например 76561198452324571 или steamcommunity.com/profiles/…" autocomplete="off"><div id="sidout" class="sidout"></div></div>`);
   $('#sidq').oninput = (e) => ($('#sidout').innerHTML = steamIds(e.target.value));
   fx(app);
-  import('./viewer3d.js?v=202610252139').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
+  import('./viewer3d.js?v=202610252144').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
 }
 
 // Все форматы Steam ID из одного ввода.
@@ -188,7 +188,7 @@ async function ruinStats(account, list, c) {
 
 async function route() {
   const [, page, arg] = location.hash.split(/[/?]/);
-  $$('.top nav a').forEach((a) => a.classList.toggle('on', a.dataset.nav === (page === 'sets' ? 'sets' : page === 'coach' ? 'coach' : 'match')));
+  $$('.top nav a, .tabbar a').forEach((a) => a.classList.toggle('on', a.dataset.nav === (page === 'sets' ? 'sets' : page === 'coach' ? 'coach' : 'match')));
   window.scrollTo(0, 0);
   if (page === 'match' && arg) return renderMatch(app, arg);
   if (page === 'player' && arg) return player(arg);
@@ -234,11 +234,13 @@ function embers() {
 // Тема: «Спорт» (по умолчанию) или «Неон». Искры только в неоне.
 const themeBtn = $('#theme');
 const paintTheme = () => (themeBtn.textContent = document.documentElement.classList.contains('sport') ? '◐ Спорт' : '◐ Неон');
-themeBtn.onclick = () => {
+const toggleTheme = () => {
   const sport = document.documentElement.classList.toggle('sport');
   store.set('theme', sport ? 'sport' : 'neon');
   paintTheme();
 };
+themeBtn.onclick = toggleTheme;
+document.querySelector('[data-theme-toggle]').onclick = toggleTheme; // нижняя панель на телефоне
 paintTheme();
 // Шапка и меню разделов прячутся при прокрутке вниз и возвращаются при прокрутке вверх.
 // Порог 40 px в одну сторону: плавная прокрутка даёт мелкие откаты назад, без порога шапка мигает.

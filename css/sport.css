@@ -80,3 +80,5 @@
 .sport .nomx { border-radius: 4px; }
 .sport .nomx-img img { filter: grayscale(1) contrast(1.1); }
 .sport .nomx-val, .sport .nomr { border-radius: 3px; }
+.sport .tabbar { background: #000; border-top: 2px solid var(--red); }
+.sport .tabbar a, .sport .tabbar button { font-family: var(--display); letter-spacing: .04em; text-transform: uppercase; border-radius: 3px; }
