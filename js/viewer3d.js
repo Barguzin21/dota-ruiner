@@ -79,7 +79,7 @@ export function createViewer(el, manifest, opt = {}) {
   shadow.rotation.x = -Math.PI / 2;
   scene.add(shadow);
 
-  let hero, skeleton, boneIdx, mixer;
+  let hero, skeleton, boneIdx, mixer, quant;
   const worn = new Map(); // id → mesh[]
   const clock = new THREE.Clock();
   let alive = true;
@@ -111,6 +111,19 @@ export function createViewer(el, manifest, opt = {}) {
       if (o.isMesh) o.frustumCulled = false;
     });
     boneIdx = new Map(skeleton?.bones.map((b, i) => [b.name.toLowerCase(), i]) || []);
+    // gltf-transform квантует тело героя и прячет масштаб/сдвиг в матрицы костей.
+    // Находим его (рамка вершин до и после скиннинга в позе привязки), чтобы перевести предметы в то же пространство.
+    hero.traverse((o) => {
+      if (!o.isSkinnedMesh || quant) return;
+      o.geometry.computeBoundingBox();
+      const q = o.geometry.boundingBox;
+      o.computeBoundingBox();
+      const r = o.boundingBox;
+      const qs = q.getSize(new THREE.Vector3());
+      const rs = r.getSize(new THREE.Vector3());
+      const sc = (rs.x / qs.x + rs.y / qs.y + rs.z / qs.z) / 3;
+      quant = { s: sc, c: r.min.clone().sub(q.min.clone().multiplyScalar(sc)) };
+    });
     if (gltf.animations[0]) {
       mixer = new THREE.AnimationMixer(hero);
       mixer.clipAction(gltf.animations[0]).play();
@@ -150,6 +163,10 @@ export function createViewer(el, manifest, opt = {}) {
       }
       geo.setAttribute('position', new THREE.BufferAttribute(f, 3));
       geo.applyMatrix4(o.matrixWorld);
+      if (quant && Math.abs(quant.s - 1) > 1e-3) {
+        geo.translate(-quant.c.x, -quant.c.y, -quant.c.z);
+        geo.scale(1 / quant.s, 1 / quant.s, 1 / quant.s);
+      }
       let mesh;
       const si = geo.attributes.skinIndex;
       if (skeleton && si && bones.length) {
