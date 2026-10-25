@@ -187,3 +187,7 @@
 .features { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 900px) { .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .features { grid-template-columns: 1fr; } }
+
+/* портрет-заглушка до 3D: исходник 142x188, больше x2 не растягиваем */
+.home3d { display: grid; place-items: center; }
+.home3d > img { width: auto; height: auto; max-width: min(284px, 70%); max-height: 376px; border-radius: 18px; box-shadow: 0 30px 80px -20px rgba(255, 59, 59, .5); }
