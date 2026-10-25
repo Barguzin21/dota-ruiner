@@ -25,8 +25,13 @@ export const heroTall = (key) => `img/heroes/tall/${key}.webp`;
 export const heroFull = (key) => `img/heroes/full/${key}.webp`;
 export const itemImg = (key) => `img/game/${key}.webp`;
 
-export async function getJSON(url, opt) {
+export async function getJSON(url, opt, tries = 3) {
   const r = await fetch(url, opt);
+  // OpenDota пускает ~60 запросов в минуту: на 429 ждём и повторяем, а не показываем ошибку
+  if (r.status === 429 && tries > 0) {
+    await new Promise((ok) => setTimeout(ok, (4 - tries) * 4000));
+    return getJSON(url, opt, tries - 1);
+  }
   if (!r.ok) {
     const e = new Error(`${r.status}`);
     e.status = r.status;

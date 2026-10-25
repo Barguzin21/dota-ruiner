@@ -9,7 +9,8 @@ const ROOT = process.cwd();
 const PORT = +process.argv[2] || 3141;
 const MODELS = normalize(process.env.MODELS || join(ROOT, '..', 'dota-ruiner-models'));
 const TYPES = { '.glb': 'model/gltf-binary','.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.png': 'image/png' };
-if (existsSync('.env')) for (const l of readFileSync('.env', 'utf8').split('\n')) { const m = l.match(/^(\w+)=(.*)$/); if (m) process.env[m[1]] ??= m[2].trim(); }
+// .env — свои ключи, .env.local — то, что выдал `vercel env pull` (токен Blob)
+for (const f of ['.env', '.env.local']) if (existsSync(f)) for (const l of readFileSync(f, 'utf8').split('\n')) { const m = l.match(/^(\w+)="?(.*?)"?\s*$/); if (m) process.env[m[1]] ??= m[2]; }
 
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');

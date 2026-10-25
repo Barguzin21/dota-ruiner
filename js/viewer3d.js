@@ -56,6 +56,8 @@ export function createViewer(el, manifest, opt = {}) {
   controls.autoRotate = true;
   controls.autoRotateSpeed = opt.controls === false ? 2 : 1.2;
   controls.enabled = opt.controls !== false;
+  // OrbitControls ставит touch-action:none, и на телефоне палец на модели не крутит страницу
+  if (!controls.enabled) renderer.domElement.style.touchAction = 'pan-y';
   controls.addEventListener('start', () => (controls.autoRotate = false));
 
   const [rimColor, fill] = TONES[opt.tone] || TONES.blue;

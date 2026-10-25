@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610252155';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202610252155';
-import { coachSection, me, itemTimings } from './coach.js?v=202610252155';
-import { icon as ic } from './icons.js?v=202610252155';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610260109';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202610260109';
+import { coachSection, me, itemTimings } from './coach.js?v=202610260109';
+import { icon as ic } from './icons.js?v=202610260109';
 
 let A; // текущий разбор
 let C; // справочники
@@ -127,6 +127,7 @@ function draw(app) {
       </div>
     </section>
     <div class="reasons reveal">${r.neg.slice(0, 4).map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('') || '<div class="reason"><b>Явных провалов нет</b><span>Просто хуже остальных по сумме метрик.</span></div>'}</div>
+    <div class="vote reveal" id="vote"></div>
     <div class="actions">
       <button class="btn ghost" data-act="defend" title="Оправдать руинера">${ic('scale')} Оправдать</button>
       <button class="btn ghost" data-act="why" title="Почему именно он?">${ic('search')} Почему он?</button>
@@ -177,6 +178,7 @@ function draw(app) {
   $$('[data-act]', app).forEach((b) => (b.onclick = () => action(b.dataset.act)));
   fx(app);
   mount3d(app);
+  voteBox();
 }
 
 // Живые герои в карточках вердикта (3D) или полноростовой рендер (2D), переключатель запоминается.
@@ -201,7 +203,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202610252155').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610260109').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -492,10 +494,16 @@ function episodes(el) {
     const shown = open ? eps : eps.slice(0, SHOW);
     el.innerHTML = `<div class="panel"><h3>Ключевые эпизоды</h3>
       <div class="filters">${Object.entries(kinds).map(([k, t]) => `<button data-f="${k}" class="${k === f ? 'on' : ''}">${t}</button>`).join('')}</div>
-      <div class="eps">${shown.map((e) => `<div class="ep ${e.ruiner ? 'ruiner' : e.kind}"><div class="tm">${mmss(e.t)}</div><div>${icon[e.kind] || '•'}</div>
-        <div><b>${esc(e.title)}</b><span>${esc(e.text)}</span></div></div>`).join('') || '<div class="empty">Нет эпизодов (реплей не разобран).</div>'}</div>
+      <div class="eps">${shown.map((e) => `<div class="ep ${e.ruiner ? 'ruiner' : e.kind} ${e.fi != null ? 'clickable' : ''}" ${e.fi != null ? `data-fi="${e.fi}" title="Нажми, чтобы разобрать драку"` : ''}><div class="tm">${mmss(e.t)}</div><div>${icon[e.kind] || '•'}</div>
+        <div><b>${esc(e.title)}${e.fi != null ? ' <span class="ep-more">разбор ▾</span>' : ''}</b><span>${esc(e.text)}</span></div></div>`).join('') || '<div class="empty">Нет эпизодов (реплей не разобран).</div>'}</div>
       ${eps.length > SHOW ? `<button class="btn ghost epmore" data-more>${open ? 'Свернуть' : `Показать все эпизоды (${eps.length})`}</button>` : ''}</div>`;
     $$('[data-f]', el).forEach((b) => (b.onclick = () => { f = b.dataset.f; open = false; render(); }));
+    $$('[data-fi]', el).forEach((row) => (row.onclick = () => {
+      const next = row.nextElementSibling;
+      if (next?.classList.contains('fightbox')) { next.remove(); return; }
+      row.insertAdjacentHTML('afterend', fightBox(+row.dataset.fi));
+      fx(row.nextElementSibling);
+    }));
     const more = $('[data-more]', el);
     if (more) more.onclick = () => { open = !open; render(); if (!open) el.scrollIntoView({ block: 'start' }); };
   };
@@ -503,6 +511,69 @@ function episodes(el) {
 }
 
 // ---------- номинации
+// Голосование за вердикт: согласны ли люди с моделью и кого считают руинером сами.
+async function voteBox() {
+  const box = $('#vote');
+  if (!box) return;
+  const key = `voted:${A.id}`;
+  const losers = A.players.filter((p) => !p.win);
+  const show = (d) => {
+    const total = d.agree + d.disagree;
+    const pct = total ? Math.round(d.agree / total * 100) : 0;
+    const top = Object.entries(d.picks || {}).sort((a, b) => b[1] - a[1])[0];
+    const alt = top && A.players[top[0]];
+    box.innerHTML = `<span class="lbl">Вердикт</span><div class="vote-bar"><i style="width:${pct}%"></i></div>
+      <span><b>${pct}%</b> согласны · ${total} ${total % 10 === 1 && total % 100 !== 11 ? 'голос' : total % 10 >= 2 && total % 10 <= 4 && (total % 100 < 12 || total % 100 > 14) ? 'голоса' : 'голосов'}${alt ? ` · люди чаще называют руинером <b>${esc(alt.hero)}</b>` : ''}</span>`;
+  };
+  const ask = () => {
+    box.innerHTML = `<span>Согласен, что заруинил <b>${esc(A.ruiner.hero)}</b>?</span>
+      <button class="btn sm" data-v="agree">${ic('shield')} Да</button><button class="btn ghost sm" data-v="disagree">Нет</button>`;
+    $('[data-v="agree"]', box).onclick = () => send('agree');
+    $('[data-v="disagree"]', box).onclick = () => {
+      box.innerHTML = `<span>Кто заруинил на самом деле?</span>${losers.filter((p) => p !== A.ruiner).map((p) => `<button class="chip" data-pick="${p.idx}"><img src="${portrait(p)}" alt="">${esc(p.hero)}</button>`).join('')}
+        <button class="chip" data-pick="">вся команда</button>`;
+      $$('[data-pick]', box).forEach((b) => (b.onclick = () => send('disagree', b.dataset.pick === '' ? null : +b.dataset.pick)));
+    };
+  };
+  const send = async (vote, pick = null) => {
+    box.innerHTML = '<span class="psub">Сохраняем голос…</span>';
+    try {
+      const d = await getJSON(`${API}/vote`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match: String(A.id), vote, pick }) });
+      store.set(key, vote);
+      show(d);
+      toast('Спасибо, голос учтён');
+    } catch {
+      box.innerHTML = '<span class="psub">Не удалось сохранить голос, попробуй позже.</span>';
+    }
+  };
+  if (store.get(key, null)) {
+    const d = await getJSON(`${API}/vote?match=${A.id}`).catch(() => null);
+    return d ? show(d) : ask();
+  }
+  ask();
+}
+
+// Разбор драки: кто сколько нанёс и получил, кто умер, какие способности и предметы нажимал.
+const prettyAbility = (k) => k.split('_').slice(1).join(' ').replace(/^\w/, (c) => c.toUpperCase()) || k;
+function fightBox(fi) {
+  const f = A.rawFights?.[fi];
+  if (!f) return '';
+  const rows = f.players.map((fp, i) => ({ p: A.players[i], fp })).filter(({ p, fp }) => p && (fp.damage || fp.deaths || fp.healing || Object.keys(fp.ability_uses || {}).length));
+  const side = (t) => rows.filter((x) => x.p.team === t).sort((a, b) => b.fp.damage - a.fp.damage);
+  const maxDmg = Math.max(1, ...rows.map((x) => x.fp.damage || 0));
+  const absent = A.players.filter((p) => !rows.some((x) => x.p === p));
+  const won = A.fights[fi]?.won;
+  const col = (t) => `<div class="fb-side"><div class="fb-h ${t === 'radiant' ? 'rad' : 'dire'}">${teamName(t)}${won === t ? ' · выиграли' : ''}</div>${side(t).map(({ p, fp }) => {
+    const abil = Object.entries(fp.ability_uses || {}).map(([k, n]) => `${prettyAbility(k)}${n > 1 ? ` ×${n}` : ''}`).join(', ');
+    const items = Object.keys(fp.item_uses || {}).filter((k) => !/tpscroll|ward|smoke|dust|flask|tango|clarity|mango|faerie/.test(k)).map((k) => C.itemsByKey[k]?.name || k).join(', ');
+    return `<div class="fb-row ${fp.deaths ? 'dead' : ''}"><img src="${portrait(p)}" alt=""><div class="fb-main"><b>${esc(p.hero)}${fp.deaths ? ' <span class="chip neg">погиб</span>' : ''}${p === A.ruiner ? ' <span class="tag r">РУИНЕР</span>' : ''}</b>
+      <div class="fb-dmg"><i style="width:${(fp.damage || 0) / maxDmg * 100}%"></i></div>
+      <span class="psub">${fmt(fp.damage || 0)} урона${fp.healing ? ` · ${fmt(fp.healing)} лечения` : ''} · ${fp.gold_delta >= 0 ? '+' : ''}${fmt(fp.gold_delta || 0)} золота${abil ? ` · ${esc(abil)}` : ''}${items ? ` · ${esc(items)}` : ''}</span></div></div>`;
+  }).join('') || '<p class="psub">Никого.</p>'}</div>`;
+  return `<div class="fightbox reveal"><div class="fb-cols">${col('radiant')}${col('dire')}</div>
+    ${absent.length ? `<p class="psub">Не участвовали: ${absent.map((p) => esc(p.hero)).join(', ')}.</p>` : ''}</div>`;
+}
+
 // Главные три номинации крупно, остальные компактно ниже.
 const MAIN_NOMS = ['damage', 'immortal', 'feeder', 'multi', 'control', 'eyes'];
 function noms(el) {

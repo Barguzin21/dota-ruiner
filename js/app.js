@@ -1,12 +1,13 @@
 // Роутер, главная, страница игрока.
-import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610252155';
-import { renderMatch } from './match.js?v=202610252155';
-import { renderSets } from './wardrobe.js?v=202610252155';
-import { coachPage, me, setMe } from './coach.js?v=202610252155';
-import { comparePage } from './compare.js?v=202610252155';
-import { smurfPage } from './smurf.js?v=202610252155';
-import { icon as ic } from './icons.js?v=202610252155';
-import { rankName, analyze } from './analyze.js?v=202610252155';
+import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610260109';
+import { renderMatch } from './match.js?v=202610260109';
+import { renderSets } from './wardrobe.js?v=202610260109';
+import { coachPage, me, setMe } from './coach.js?v=202610260109';
+import { friendsPage } from './friends.js?v=202610260109';
+import { comparePage } from './compare.js?v=202610260109';
+import { smurfPage } from './smurf.js?v=202610260109';
+import { icon as ic } from './icons.js?v=202610260109';
+import { rankName, analyze } from './analyze.js?v=202610260109';
 
 const app = $('#app');
 const STEAM64 = 76561197960265728n;
@@ -76,7 +77,7 @@ function home() {
   $('#sidq').oninput = (e) => ($('#sidout').innerHTML = steamIds(e.target.value));
   fx(app);
   if (me()) myMatches(me());
-  import('./viewer3d.js?v=202610252155').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
+  import('./viewer3d.js?v=202610260109').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
 }
 
 // «Мои катки»: 5 последних игр, пометка руинер/MVP и влияние появляются по мере разбора.
@@ -225,6 +226,7 @@ async function route() {
   if (page === 'coach') return coachLanding();
   if (page === 'smurf' && arg) return smurfPage(app, arg);
   if (page === 'compare' && arg) return comparePage(app, arg, location.hash.split('/')[3]);
+  if (page === 'friends') return friendsPage(app);
   if (page === 'sets') return renderSets(app, arg, new URLSearchParams(location.hash.split('?')[1] || ''));
   return home();
 }
@@ -261,7 +263,7 @@ function embers() {
   tick();
 }
 
-// Тема: «Спорт» (по умолчанию) или «Неон». Искры только в неоне.
+// Тема: «Неон» (по умолчанию) или «Спорт». Искры только в неоне.
 const themeBtn = $('#theme');
 const paintTheme = () => (themeBtn.textContent = document.documentElement.classList.contains('sport') ? '◐ Спорт' : '◐ Неон');
 const toggleTheme = () => {
@@ -287,6 +289,8 @@ addEventListener('scroll', () => {
   lastY = y;
 }, { passive: true });
 
+// установка как приложение (PWA): сервис-воркер лежит рядом со страницей
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 embers();
 window.addEventListener('hashchange', route);
 route();

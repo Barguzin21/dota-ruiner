@@ -7,3 +7,7 @@ index.html
 dev.mjs
 test.mjs
 .env
+node_modules
+.env.local
+sw.js
+manifest.webmanifest

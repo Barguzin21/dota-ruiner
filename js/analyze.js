@@ -240,6 +240,7 @@ export function analyze(m, consts = {}) {
     advantage: { gold: m.radiant_gold_adv || [], xp: m.radiant_xp_adv || [] },
     turning: turningPoint(m.radiant_gold_adv || [], winner),
     fights: fights.map((f) => fightInfo(f, players)),
+    rawFights: fights, // для разбора драки по участникам
     episodes: episodes(m, players, fights, ruiner),
     noms: nominations(players, mins),
     chat: (m.chat || []).filter((c) => c.type === 'chat').map((c) => ({ time: c.time, text: c.key, p: players.find((p) => p.slot === c.player_slot), toxic: TOXIC.test(c.key) })),
@@ -357,12 +358,12 @@ function episodes(m, players, fights, ruiner) {
       out.push({ t: o.time, kind: 'rosh', title: 'Аегис', text: bySlot(o.player_slot)?.hero || '' });
     }
   }
-  fights.forEach((f) => {
+  fights.forEach((f, fi) => {
     const info = fightInfo(f, players);
     if (info.deaths.length < 3) return;
     const loserSide = info.won === 'radiant' ? 'Тьма' : 'Свет';
     const rd = info.deaths.filter((d) => d.p === ruiner).length;
-    out.push({ t: f.start, kind: 'fight', title: `Драка: ${info.deaths.length} смертей`, text: `${loserSide} теряет ${fmt(info.swing)} золота в обмене` + (rd ? ` · ${ruiner.hero} погиб` : ''), ruiner: !!rd, won: info.won });
+    out.push({ t: f.start, kind: 'fight', title: `Драка: ${info.deaths.length} ${[2, 3, 4].includes(info.deaths.length % 10) && ![12, 13, 14].includes(info.deaths.length % 100) ? 'смерти' : 'смертей'}`, text: `${loserSide} теряет ${fmt(info.swing)} золота в обмене` + (rd ? ` · ${ruiner.hero} погиб` : ''), ruiner: !!rd, won: info.won, fi });
   });
   for (const d of ruiner.soloDeaths) {
     out.push({ t: d.time, kind: 'solo', title: `${ruiner.hero}: смерть без драки`, text: `Отдал ${fmt(d.gold_fed || 0)} золота врагу, ждал респавна ${d.time_dead || '?'} сек.`, ruiner: true });

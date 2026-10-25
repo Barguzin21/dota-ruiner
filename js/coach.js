@@ -1,7 +1,7 @@
 // Обучение: разбор «моих» ошибок в матче, тайминги предметов, страница-тренер по последним играм.
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610252155';
-import { analyze, mmss, METRIC_RU } from './analyze.js?v=202610252155';
-import { icon as ic } from './icons.js?v=202610252155';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610260109';
+import { analyze, mmss, METRIC_RU } from './analyze.js?v=202610260109';
+import { icon as ic } from './icons.js?v=202610260109';
 
 // Мой аккаунт (кнопка «Это я»). По нему подсвечиваем «себя» в матчах и строим тренера.
 export const me = () => store.get('me', null);
@@ -206,6 +206,28 @@ export async function coachPage(app, id) {
   $('#cpstat').textContent = `Готово: разобрано ${games.length} игр`;
 }
 
+// Вызовы: цели на ближайшие игры, прогресс считается по свежим матчам (games — от новых к старым).
+function challenges(games, rec) {
+  const streak = (f) => { let n = 0; for (const g of games) { if (!f(g)) break; n++; } return n; };
+  const inLast = (k, f) => games.slice(0, k).filter(f).length;
+  const often = (t) => rec.some(([x, c]) => x === t && c >= Math.max(2, games.length / 4));
+  const all = [
+    { id: 'noruin', title: 'Не быть руинером 5 игр подряд', cur: streak((g) => !g.ruiner), goal: 5 },
+    { id: 'impact', title: 'Влияние 60+ в 3 из последних 5 игр', cur: inLast(5, (g) => g.p.score >= 60), goal: 3 },
+    often('Слишком много смертей') && { id: 'deaths', title: '5 игр подряд не больше 6 смертей', cur: streak((g) => g.p.d <= 6), goal: 5 },
+    often('Мало обзора') && { id: 'wards', title: '8+ вардов в 3 из последних 5 игр', cur: inLast(5, (g) => g.p.obs + g.p.sen >= 8), goal: 3 },
+    often('Фарм ниже ожидания') && { id: 'farm', title: 'Фарм лучше половины игроков на герое в 3 из 5', cur: inLast(5, (g) => g.p.m01.farm >= 0.5), goal: 3 },
+    (often('Не участвовал в драках') || often('Пропускал драки')) && { id: 'kp', title: 'Участие в драках 55%+ в 3 из последних 5', cur: inLast(5, (g) => g.p.kp >= 0.55), goal: 3 },
+    { id: 'mvp', title: 'Стать MVP хотя бы раз за 10 игр', cur: Math.min(1, inLast(10, (g) => g.mvp)), goal: 1 },
+  ].filter(Boolean);
+  const pick = [all[0], ...all.slice(2).filter((c) => c.id !== 'mvp').slice(0, 2), all[1], all.find((c) => c.id === 'mvp')].filter(Boolean).slice(0, 4);
+  return `<div class="panel reveal chal"><h3>Вызовы <small>цели на ближайшие игры, прогресс по свежим матчам</small></h3><div class="chal-grid">${pick.map((c) => {
+    const v = Math.min(c.cur, c.goal);
+    return `<div class="chal-item ${v >= c.goal ? 'done' : ''}"><div class="chal-t">${v >= c.goal ? '✓ ' : ''}${esc(c.title)}</div>
+      <div class="chal-bar"><i style="width:${v / c.goal * 100}%"></i></div><span class="psub">${v} из ${c.goal}</span></div>`;
+  }).join('')}</div></div>`;
+}
+
 function drawCoach(out, games, C, name) {
   if (!games.length) { out.innerHTML = '<div class="empty">Не удалось разобрать ни одной игры.</div>'; return; }
   const n = games.length;
@@ -238,6 +260,7 @@ function drawCoach(out, games, C, name) {
       ${[['Игр разобрано', n], ['Винрейт', `${Math.round(wins / n * 100)}%`], ['Раз руинер', games.filter((g) => g.ruiner).length], ['Раз MVP', games.filter((g) => g.mvp).length], ['Среднее влияние', Math.round(avg((g) => g.p.score))], ['Смертей за игру', avg((g) => g.p.d).toFixed(1)]]
         .map(([k, v]) => `<div class="tile"><div class="lbl">${k}</div><div class="num">${v}</div></div>`).join('')}
     </div>
+    ${challenges(games, rec)}
     <div class="coach-grid">
       <div class="panel reveal"><h3>Что повторяется <small>ошибки, которые встречаются чаще всего</small></h3>
         ${rec.slice(0, 5).map(([t, c], i) => { const tip = TIPS[t]; return `<div class="mistake"><div class="mn">${i + 1}</div><div>

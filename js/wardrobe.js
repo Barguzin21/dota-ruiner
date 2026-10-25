@@ -1,6 +1,6 @@
 // Примерочная: герои → наборы и предметы по слотам, цены, образы по бюджету (правила + ИИ).
-import { $, $$, esc, rub, consts, heroTall, getJSON, toast, askAI, API } from './util.js?v=202610252155';
-import { icon as ic } from './icons.js?v=202610252155';
+import { $, $$, esc, rub, consts, heroTall, getJSON, toast, askAI, API } from './util.js?v=202610260109';
+import { icon as ic } from './icons.js?v=202610260109';
 
 const RAR = { common: ['Обычный', '#b0c3d9'], uncommon: ['Необычный', '#5e98d9'], rare: ['Редкий', '#4b69ff'], mythical: ['Мифический', '#8847ff'],
   legendary: ['Легендарный', '#d32ce6'], immortal: ['Бессмертный', '#e4ae39'], arcana: ['Аркана', '#ade55c'], ancient: ['Древний', '#eb4b4b'], seasonal: ['Сезонный', '#fff34f'] };
@@ -68,7 +68,9 @@ function heroPage(app, C, D, P, params) {
     <div class="wrap2">
       <aside class="stage"><div class="look" id="look"></div><div class="slots" id="slots"></div>
         <div class="total"><span class="lbl">Стоимость образа</span><span class="num" id="sum"></span></div>
-        <div class="actions"><button class="btn gold" id="buy">Где купить</button><button class="btn ghost" id="link">Ссылка на образ</button><button class="btn ghost" id="reset">Сбросить</button></div>
+        <div id="hist"></div>
+        <div class="actions"><button class="btn gold" id="buy">Где купить</button><button class="btn ghost" id="remember" title="Сохранить образ, чтобы сравнить с другим">Запомнить образ</button><button class="btn ghost" id="link">Ссылка</button><button class="btn ghost" id="reset">Сбросить</button></div>
+        <div id="cmpl"></div>
       </aside>
       <section>
         <div class="panel aibox"><h3>Образ под бюджет <small>подборка по ценам и редкости</small></h3><div class="looks" id="looks"></div>
@@ -111,6 +113,9 @@ function heroPage(app, C, D, P, params) {
     }).join('');
     $('#sum').textContent = rub(total) + (unknown ? ` + ${unknown} без цены` : '');
     if (set && price(set) != null) $('#sum').textContent += ` · набор ${rub(price(set))}`;
+    st.total = total;
+    drawCompare();
+    drawHistory(set);
     $$('#slots .slot').forEach((el) => (el.onclick = () => { st.view = 'items'; st.slot = el.dataset.slot; drawList(); drawStage(); }));
   };
 
@@ -227,6 +232,57 @@ function heroPage(app, C, D, P, params) {
   $('#q').oninput = (e) => { st.q = e.target.value; drawList(); };
   $('#sort').onchange = (e) => { st.sort = e.target.value; drawList(); };
   $('#sale').onchange = (e) => { st.onlySale = e.target.checked; drawList(); };
+  // Сравнение образов: «Запомнить» сохраняет текущий как A, дальше A стоит рядом с тем, что собираешь.
+  const lookTitle = () => { const set = st.set && D.sets.find((x) => x.id === st.set); return set ? set.ru : 'Свой образ'; };
+  // картинка набора, а не снимок 3D: модель могла ещё не загрузиться, и снимок выходит пустым
+  const lookImg = () => {
+    const set = st.set && D.sets.find((x) => x.id === st.set);
+    return set?.img ? icon(set) : heroTall(D.hero);
+  };
+  function drawCompare() {
+    const A = st.saved;
+    const box = $('#cmpl');
+    if (!box) return;
+    if (!A) { box.innerHTML = ''; return; }
+    const diff = st.total - A.total;
+    box.innerHTML = `<div class="lookcmp"><div><img src="${A.img}" alt=""><b>A · ${esc(A.title)}</b><span>${rub(A.total)}</span></div>
+      <div class="lc-vs">${diff === 0 ? '=' : diff > 0 ? `+${rub(diff)}` : `−${rub(-diff)}`}</div>
+      <div><img src="${lookImg()}" alt="" id="lc-now"><b>Сейчас · ${esc(lookTitle())}</b><span>${rub(st.total)}</span></div>
+      <button class="fx" id="lc-x" title="Убрать сравнение">×</button></div>`;
+    $('#lc-x').onclick = () => { st.saved = null; drawCompare(); };
+  }
+  $('#remember').onclick = () => {
+    if (!st.total) return toast('Сначала надень хотя бы один предмет из магазина');
+    st.saved = { title: lookTitle(), total: st.total, img: lookImg(), eq: { ...st.eq } };
+    toast('Образ A запомнен: собери другой, чтобы сравнить');
+    drawCompare();
+  };
+
+  // История цены выбранного набора (копится раз в сутки на сервере).
+  let histFor = null;
+  async function drawHistory(set) {
+    const box = $('#hist');
+    if (!box) return;
+    if (!set || price(set) == null) { box.innerHTML = ''; histFor = null; return; }
+    if (histFor === set.id) return;
+    histFor = set.id;
+    const d = await getJSON(`${API}/history?name=${encodeURIComponent(set.n)}`).catch(() => null);
+    if (histFor !== set.id) return;
+    const pts = (d?.prices || []).map((v, i) => [d.days[i], v]).filter(([, v]) => v != null);
+    if (pts.length < 2) {
+      box.innerHTML = `<div class="hist psub">История цены копится с ${pts[0] ? new Date(pts[0][0]).toLocaleDateString('ru-RU') : 'сегодня'}: график появится через пару дней.</div>`;
+      return;
+    }
+    const vs = pts.map(([, v]) => v);
+    const lo = Math.min(...vs);
+    const hi = Math.max(...vs);
+    const W = 300, H = 46;
+    const path = pts.map(([, v], i) => `${i ? 'L' : 'M'}${(i / (pts.length - 1) * W).toFixed(1)},${(H - 4 - (hi === lo ? .5 : (v - lo) / (hi - lo)) * (H - 8)).toFixed(1)}`).join('');
+    const ch = vs[vs.length - 1] - vs[0];
+    box.innerHTML = `<div class="hist"><svg viewBox="0 0 ${W} ${H}"><path d="${path}" fill="none" stroke="${ch > 0 ? '#ff6b4a' : '#4fd27a'}" stroke-width="2"/></svg>
+      <span class="psub">${pts.length} дн.: от ${rub(lo)} до ${rub(hi)} · ${ch === 0 ? 'без изменений' : ch > 0 ? `подорожал на ${rub(ch)}` : `подешевел на ${rub(-ch)}`}</span></div>`;
+  }
+
   $('#reset').onclick = () => { st.eq = Object.fromEntries(Object.entries(D.defaults).map(([s, i]) => [s, i.id])); st.set = null; drawStage(); drawList(); };
   $('#link').onclick = async () => {
     const ids = Object.values(st.eq).filter((id) => !Object.values(D.defaults).some((d) => d.id === id));
@@ -255,7 +311,7 @@ function heroPage(app, C, D, P, params) {
   start3d();
 
   async function start3d() {
-    const v3 = await import('./viewer3d.js?v=202610252155').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610260109').catch(() => null);
     const man = v3 && (await v3.hasModels(D.hero));
     if (!man || !document.body.contains(look)) return;
     look.classList.add('is3d');
