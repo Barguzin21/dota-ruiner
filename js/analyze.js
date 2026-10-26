@@ -26,7 +26,8 @@ const SELF_SAVE = new Set(['life_stealer', 'juggernaut', 'omniknight', 'slark', 
 const TOXIC = /(fuck|noob|нуб|даун|дебил|идиот|урод|сын\s*шлю|мать|мамк|ебан|еба|хуй|хуе|пидор|пидр|сука|бля|гандон|retard|idiot|stupid|uninstall|report|репорт|рак\b|раки\b|тупой|тупая|feed|фидер|kys|ez\b|изи\b)/i;
 
 const DEATH = new Set(['Слишком много смертей', 'Накормил врагов', 'Умирал в одиночку', 'Смерти стоили зданий', 'Слил преимущество', 'Первым падал в драках', 'Умирал с деньгами']);
-const role = (p) => (p.position_est || p.lane_role || 3);
+// Позиция: из OpenDota, а в неразобранном матче её нет, тогда по месту в команде по ценности (1 самый богатый, 5 самый бедный).
+const role = (p) => p.position_est || p._pos || 3;
 const isSupport = (p) => role(p) >= 4;
 const team = (p) => (p.player_slot < 128 ? 'radiant' : 'dire');
 
@@ -54,6 +55,16 @@ function deathsInFights(p, fights, idx, others) {
 }
 
 export function analyze(m, consts = {}) {
+  // Неразобранный матч: саппорты — два самых бедных героя с ролью Support (бедный Juggernaut саппортом не станет),
+  // остальные — позиции 1–3 по ценности.
+  const nw = (p) => p.net_worth || p.total_gold || 0;
+  const canSup = (p) => (consts.heroes?.[p.hero_id]?.roles || []).includes('Support');
+  for (const t of ['radiant', 'dire']) {
+    const side = m.players.filter((p) => team(p) === t).sort((a, b) => nw(b) - nw(a));
+    const sups = [...side.filter(canSup), ...side.filter((p) => !canSup(p))].sort((a, b) => canSup(b) - canSup(a) || nw(a) - nw(b)).slice(0, 2);
+    side.filter((p) => !sups.includes(p)).forEach((p, i) => { p._pos = i + 1; });
+    sups.sort((a, b) => nw(b) - nw(a)).forEach((p, i) => { p._pos = 4 + i; });
+  }
   const heroes = consts.heroes || {};
   const itemsById = consts.itemsById || {};
   const dur = m.duration || 1;
@@ -148,17 +159,17 @@ export function analyze(m, consts = {}) {
       xp: pct(p, 'xp_per_min') ?? rel(p.xp_per_min, teamExp.xpm),
       dmg: pct(p, 'hero_damage_per_min') ?? rel((p.hero_damage || 0) / mins, teamExp.dpm),
       // саппорт ходит первым, ставит варды в тумане и умирает чаще, ожидание выше, но без лишних поблажек
-      deaths: pct(p, 'deaths_per_min') ?? clamp(1 - p.deaths / (mins * (sup ? 0.42 : 0.32)), 0, 1),
+      deaths: pct(p, 'deaths_per_min') ?? clamp(1 - p.deaths / (mins * (sup ? 0.36 : 0.32)), 0, 1),
       lh: pct(p, 'last_hits_per_min') ?? rel(p.last_hits / mins, teamExp.lh),
       tower: pct(p, 'tower_damage') ?? rel(p.tower_damage || 0, sup ? 400 : 2500),
       kp: clamp((kp - 0.25) / 0.5, 0, 1),
       // линия: половина, эффективность OpenDota, половина, золото против соперника к 10:00
       lane: avg([p.lane_efficiency_pct != null ? clamp(p.lane_efficiency_pct / 100, 0, 1) : null, laneDiff != null ? clamp(0.5 + laneDiff / (sup ? 2400 : 3000), 0, 1) : null]) ?? 0.5,
-      // в паре саппортов варды часто ставит один: половина оценки своя, половина за обзор всех саппортов команды
-      vision: 0.5 * clamp((obs + sen * 0.6) / Math.max(4, mins * (role(p) === 5 ? 0.45 : 0.3)), 0, 1) + 0.5 * clamp(teamVision[t] / Math.max(6, mins * 0.6), 0, 1),
+      // в паре саппортов варды часто ставит один: 70% оценки свои варды, 30% обзор всех саппортов команды
+      vision: 0.7 * clamp((obs + sen * 0.6) / Math.max(4, mins * (role(p) === 5 ? 0.45 : 0.3)), 0, 1) + 0.3 * clamp(teamVision[t] / Math.max(6, mins * 0.6), 0, 1),
       utility: clamp(Math.max(pct(p, 'hero_healing_per_min') ?? 0, (p.stuns || 0) / Math.max(1, mins * 1.2), (p.camps_stacked || 0) / 8), 0, 1),
       deathCost: clamp(1 - deathCost / Math.max(1, mins) / (sup ? 260 : 320), 0, 1),
-      discipline: clamp(1 - df.solo.length * (sup ? 0.06 : 0.09) - objDeaths * 0.12 - throwDeaths * 0.15 - firstLost * 0.08, 0, 1),
+      discipline: clamp(1 - df.solo.length * (sup ? 0.08 : 0.09) - objDeaths * 0.12 - throwDeaths * 0.15 - firstLost * 0.08, 0, 1),
       fights: bigFights.length ? clamp(myFights.length / bigFights.length * 0.6 + (fightTeamDmg ? fightDmg / fightTeamDmg : 0.2) * 2 - firstLost * 0.08, 0, 1) : 0.5,
     };
     const w = WEIGHTS[sup ? 'support' : 'core'];

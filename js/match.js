@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610260228';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202610260228';
-import { coachSection, me, itemTimings } from './coach.js?v=202610260228';
-import { icon as ic } from './icons.js?v=202610260228';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610261810';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202610261810';
+import { coachSection, me, itemTimings } from './coach.js?v=202610261810';
+import { icon as ic } from './icons.js?v=202610261810';
 
 let A; // текущий разбор
 let C; // справочники
@@ -199,7 +199,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202610260228').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610261810').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -814,8 +814,8 @@ async function drawCard() {
   for (let i = 0; i < S; i += 54) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, S); x.moveTo(0, i); x.lineTo(S, i); x.stroke(); }
 
   if (hero) {
-    // герой крупно справа: высота 760 (голова ниже заголовка), низом к краю; обрезаем по x=640, чтобы широкое оружие не наезжало на текст слева
-    const h = 760;
+    // герой крупно справа: высота 830, голова правее конца заголовка, низом к краю; обрезаем по x=640, чтобы широкое оружие не наезжало на текст слева
+    const h = 830;
     const w = hero.width * (h / hero.height);
     x.save();
     x.beginPath();
@@ -824,7 +824,7 @@ async function drawCard() {
     if (sport) x.filter = 'grayscale(1) contrast(1.1)';
     x.shadowColor = 'rgba(0,0,0,.7)';
     x.shadowBlur = 40;
-    x.drawImage(hero, 860 - w / 2, S - 36 - h, w, h);
+    x.drawImage(hero, 870 - w / 2, S - 20 - h, w, h);
     x.restore();
   }
 
