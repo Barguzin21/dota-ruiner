@@ -457,3 +457,4 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 .sport .vcard.mvp.lose .vlabel { color: #8fb8ff; }
 .mvps .vcard.mvp .vlabel small { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; opacity: .8; text-shadow: none; }
 .mvps .vcard.mvp .vstage { aspect-ratio: auto; height: 118px; }
+.vcard .rings { justify-content: center; }

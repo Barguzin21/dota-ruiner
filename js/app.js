@@ -1,13 +1,13 @@
 // Роутер, главная, страница игрока.
-import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610261810';
-import { renderMatch } from './match.js?v=202610261810';
-import { renderSets } from './wardrobe.js?v=202610261810';
-import { coachPage, me, setMe } from './coach.js?v=202610261810';
-import { friendsPage } from './friends.js?v=202610261810';
-import { comparePage } from './compare.js?v=202610261810';
-import { smurfPage } from './smurf.js?v=202610261810';
-import { icon as ic } from './icons.js?v=202610261810';
-import { rankName, analyze } from './analyze.js?v=202610261810';
+import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610272249';
+import { renderMatch } from './match.js?v=202610272249';
+import { renderSets } from './wardrobe.js?v=202610272249';
+import { coachPage, me, setMe } from './coach.js?v=202610272249';
+import { friendsPage } from './friends.js?v=202610272249';
+import { comparePage } from './compare.js?v=202610272249';
+import { smurfPage } from './smurf.js?v=202610272249';
+import { icon as ic } from './icons.js?v=202610272249';
+import { rankName, analyze } from './analyze.js?v=202610272249';
 
 const app = $('#app');
 const STEAM64 = 76561197960265728n;
@@ -77,7 +77,7 @@ function home() {
   $('#sidq').oninput = (e) => ($('#sidout').innerHTML = steamIds(e.target.value));
   fx(app);
   if (me()) myMatches(me());
-  import('./viewer3d.js?v=202610261810').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
+  import('./viewer3d.js?v=202610272249').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
 }
 
 // «Мои катки»: 5 последних игр, пометка руинер/MVP и влияние появляются по мере разбора.

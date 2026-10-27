@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610261810';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202610261810';
-import { coachSection, me, itemTimings } from './coach.js?v=202610261810';
-import { icon as ic } from './icons.js?v=202610261810';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610272249';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202610272249';
+import { coachSection, me, itemTimings } from './coach.js?v=202610272249';
+import { icon as ic } from './icons.js?v=202610272249';
 
 let A; // текущий разбор
 let C; // справочники
@@ -199,7 +199,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202610261810').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202610272249').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
