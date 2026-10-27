@@ -1,7 +1,7 @@
 // Обучение: разбор «моих» ошибок в матче, тайминги предметов, страница-тренер по последним играм.
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610272250';
-import { analyze, mmss, METRIC_RU } from './analyze.js?v=202610272250';
-import { icon as ic } from './icons.js?v=202610272250';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, itemImg, store, toast, md, askAI, fx } from './util.js?v=202610272252';
+import { analyze, mmss, METRIC_RU } from './analyze.js?v=202610272252';
+import { icon as ic } from './icons.js?v=202610272252';
 
 // Мой аккаунт (кнопка «Это я»). По нему подсвечиваем «себя» в матчах и строим тренера.
 export const me = () => store.get('me', null);
