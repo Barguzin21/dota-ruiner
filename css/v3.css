@@ -458,3 +458,6 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 .mvps .vcard.mvp .vlabel small { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; opacity: .8; text-shadow: none; }
 .mvps .vcard.mvp .vstage { aspect-ratio: auto; height: 118px; }
 .vcard .rings { justify-content: center; }
+/* по центру круга само число, «%» висит справа и центровку не сдвигает */
+.ring b { left: 50%; right: auto; transform: translateX(-50%); }
+.ring.red b::after, .ring.gold b::after { position: absolute; left: 100%; bottom: 3px; }
