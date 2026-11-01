@@ -122,9 +122,16 @@ export function createViewer(el, manifest, opt = {}) {
       mixer.clipAction(gltf.animations[0]).play();
     }
     // Стандартные части героя, вынесенные в отдельные модели, рисуются предметами, тело оставляем.
-    // рамка по позе из анимации, а не по исходной: иначе у части героев (Earthshaker) модель уезжает вверх
+    await sync();
+    frame();
+  })();
+
+  // Кадр считаем после надевания предметов и по позе из анимации: у Juggernaut и других тело маленькое,
+  // а маска, плащ и оружие отдельными моделями, по голому телу камера подъезжает слишком близко.
+  function frame() {
     mixer?.update(0);
     hero.updateMatrixWorld(true);
+    hero.traverse((o) => o.skeleton?.update());
     const box = new THREE.Box3().setFromObject(hero, true);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
@@ -132,15 +139,21 @@ export function createViewer(el, manifest, opt = {}) {
     shadow.position.set(center.x, box.min.y + 0.01, center.z);
     shadow.scale.setScalar(Math.max(size.x, size.z) * 1.6);
     controls.target.set(center.x, center.y, center.z);
-    // запас сверху и по бокам: оружие и плащи бывают в полтора раза больше тела
-    camera.position.set(center.x, center.y + hgt * 0.1, center.z + hgt * (opt.controls === false ? (el.clientHeight < 200 ? 2.05 : 2.5) : 3.1));
+    // маленькое окно (карточка MVP): вписываем точно по высоте и ширине с запасом на поворот
+    const small = opt.controls === false && el.clientHeight < 200;
+    if (small) renderer.toneMappingExposure = 1.5;
+    const aspect = el.clientWidth / Math.max(1, el.clientHeight);
+    const fit = Math.max(size.y, Math.max(size.x, size.z) / aspect) * 1.1 / (2 * Math.tan(THREE.MathUtils.degToRad(15)));
+    const dist = small ? fit : hgt * (opt.controls === false ? 2.5 : 3.1); // запас: оружие и плащи бывают в полтора раза больше тела
+    camera.position.set(center.x, center.y + (small ? 0 : hgt * 0.1), center.z + dist);
     camera.near = hgt / 100;
     camera.far = hgt * 50;
+    camera.updateProjectionMatrix();
     controls.minDistance = hgt * 0.8;
     controls.maxDistance = hgt * 5;
     resize();
-    await sync();
-  })();
+  }
+
 
   // Кость героя для кости предмета: то же имя (без учёта регистра), иначе ближайший предок, иначе корень.
   function heroBone(b) {
