@@ -1,8 +1,8 @@
 // Сравнение двух игроков по последним играм: зеркальные полосы, профиль, герои, ошибки.
-import { $, esc, OD, getJSON, consts, heroImg, fx, toast } from './util.js?v=202611020232';
-import { loadGames, summarize, me } from './coach.js?v=202611020232';
-import { icon as ic } from './icons.js?v=202611020232';
-import { parseInput } from './app.js?v=202611020232';
+import { $, esc, OD, getJSON, consts, heroImg, fx, toast } from './util.js?v=202611020235';
+import { loadGames, summarize, me } from './coach.js?v=202611020235';
+import { icon as ic } from './icons.js?v=202611020235';
+import { parseInput } from './app.js?v=202611020235';
 
 const N = 10; // игр на игрока: 20 запросов к OpenDota, больше упирается в их лимит
 

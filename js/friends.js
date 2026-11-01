@@ -1,8 +1,8 @@
 // Рейтинг среди друзей: кто чаще руинит и кто тащит в последних играх. Список друзей — в браузере.
-import { $, $$, esc, OD, getJSON, consts, store, toast, fx } from './util.js?v=202611020232';
-import { loadGames, summarize, me } from './coach.js?v=202611020232';
-import { parseInput } from './app.js?v=202611020232';
-import { icon as ic } from './icons.js?v=202611020232';
+import { $, $$, esc, OD, getJSON, consts, store, toast, fx } from './util.js?v=202611020235';
+import { loadGames, summarize, me } from './coach.js?v=202611020235';
+import { parseInput } from './app.js?v=202611020235';
+import { icon as ic } from './icons.js?v=202611020235';
 
 const N = 10; // игр на друга
 const TTL = 6 * 3600 * 1000; // итоги живут 6 часов, чтобы не долбить OpenDota

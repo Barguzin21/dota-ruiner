@@ -479,3 +479,11 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
   .vside .mvps { grid-column: 1 / -1; }
   .vside > :not(.mvps) { margin: 0; min-width: 0; }
 }
+/* первый экран матча целиком на 1080p с панелью закладок */
+@media (min-width: 901px) {
+  .mhead { margin: 10px 0 12px; }
+  .mvps .vcard.mvp .vstage { height: 180px; }
+  .verdict ~ .reasons .reason, .reasons .reason { padding-top: 9px; padding-bottom: 9px; }
+  .reasons .reason span { font-size: 13px; line-height: 1.35; }
+  .vside > :not(.mvps) .psub { font-size: 12px; line-height: 1.25; }
+}
