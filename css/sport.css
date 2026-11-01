@@ -36,7 +36,7 @@
 
 /* вердикт — «РАЗЫСКИВАЕТСЯ»: ч/б портрет, красный штамп */
 .sport .vcard:not(.mvp) { background: var(--panel) !important; border: 2px solid var(--text) !important; }
-.sport .vcard:not(.mvp) .vstage { background: #000; filter: grayscale(1) contrast(1.15); border-radius: 2px; }
+.sport .vcard:not(.mvp) .vstage { background: #000; border-radius: 2px; }
 .sport .vcard:not(.mvp) .vstage::after {
   content: 'РУИНЕР НАЙДЕН'; position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%) rotate(-8deg); z-index: 3;
   font: 700 20px var(--display); letter-spacing: .08em; color: var(--red); border: 3px solid var(--red); padding: 4px 10px; background: rgba(0, 0, 0, .55); white-space: nowrap;
@@ -74,7 +74,6 @@
 .sport .feature .ico { border-radius: 4px; }
 .sport .viewsw { border-radius: 3px; }
 .sport .viewsw button { border-radius: 2px; font-family: var(--display); }
-.sport .vcard:not(.mvp) .vstage .portrait.full { filter: grayscale(1) contrast(1.1); }
 .sport .nom .ic { border-radius: 3px; }
 .sport .smurf-verdict h2 { font-family: var(--display); text-transform: uppercase; }
 .sport .nomx { border-radius: 4px; }
