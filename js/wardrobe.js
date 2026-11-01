@@ -1,6 +1,6 @@
 // Примерочная: герои → наборы и предметы по слотам, цены, образы по бюджету (правила + ИИ).
-import { $, $$, esc, rub, consts, heroTall, heroFull, getJSON, toast, askAI, API, store } from './util.js?v=202611012218';
-import { icon as ic } from './icons.js?v=202611012218';
+import { $, $$, esc, rub, consts, heroTall, heroFull, getJSON, toast, askAI, API, store } from './util.js?v=202611020207';
+import { icon as ic } from './icons.js?v=202611020207';
 
 const RAR = { common: ['Обычный', '#b0c3d9'], uncommon: ['Необычный', '#5e98d9'], rare: ['Редкий', '#4b69ff'], mythical: ['Мифический', '#8847ff'],
   legendary: ['Легендарный', '#d32ce6'], immortal: ['Бессмертный', '#e4ae39'], arcana: ['Аркана', '#ade55c'], ancient: ['Древний', '#eb4b4b'], seasonal: ['Сезонный', '#fff34f'] };
@@ -233,13 +233,14 @@ function heroPage(app, C, D, P, params) {
     const btn = e.currentTarget;
     btn.disabled = true;
     btn.textContent = 'ИИ подбирает…';
-    const sets = D.sets.filter((s) => setPrice(s) != null).sort((a, b) => vol(b) - vol(a)).slice(0, 70)
+    const sets = D.sets.filter((s) => setPrice(s) != null).sort((a, b) => vol(b) - vol(a)).slice(0, 30)
       .map((s) => ({ id: s.id, name: s.n, rarity: s.r, price: Math.round(setPrice(s) * 100) / 100, items: s.items }));
-    const items = D.items.filter((i) => price(i) != null).sort((a, b) => vol(b) - vol(a)).slice(0, 160)
+    const items = D.items.filter((i) => price(i) != null).sort((a, b) => vol(b) - vol(a)).slice(0, 60)
       .map((i) => ({ id: i.id, name: i.n, slot: i.s, rarity: i.r, price: price(i) }));
     try {
       const text = await askAI('sets', { hero: h.localized_name, slots, sets, items });
-      const looks = JSON.parse(text.replace(/^```json|```$/g, '')).looks
+      const parsed = JSON.parse(text.replace(/^\s*```(json)?|```\s*$/g, ''));
+      const looks = (parsed.looks || parsed) // модель иногда отдаёт просто массив
         .map((l) => {
           // набор раскрываем в предметы, лишние/чужие id отбрасываем, один предмет на слот
           const ids = l.items.flatMap((id) => D.sets.find((s) => s.id === id)?.items || [id]).filter((id) => byId[id]);
@@ -337,7 +338,7 @@ function heroPage(app, C, D, P, params) {
   start3d();
 
   async function start3d() {
-    const v3 = await import('./viewer3d.js?v=202611012218').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202611020207').catch(() => null);
     const man = v3 && (await v3.hasModels(D.hero));
     if (!man || !document.body.contains(look)) return;
     v3mod = [v3, man];

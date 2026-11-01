@@ -133,7 +133,7 @@ export function createViewer(el, manifest, opt = {}) {
     shadow.scale.setScalar(Math.max(size.x, size.z) * 1.6);
     controls.target.set(center.x, center.y, center.z);
     // запас сверху и по бокам: оружие и плащи бывают в полтора раза больше тела
-    camera.position.set(center.x, center.y + hgt * 0.1, center.z + hgt * (opt.controls === false ? (el.clientHeight < 200 ? 3.4 : 2.5) : 3.1));
+    camera.position.set(center.x, center.y + hgt * 0.1, center.z + hgt * (opt.controls === false ? (el.clientHeight < 200 ? 2.05 : 2.5) : 3.1));
     camera.near = hgt / 100;
     camera.far = hgt * 50;
     controls.minDistance = hgt * 0.8;

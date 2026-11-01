@@ -57,7 +57,8 @@ export default async function handler(req, res) {
   });
   let error = 'gemini недоступен';
   // Бесплатный уровень часто отвечает «перегружено» (429/503), тогда пробуем облегчённую модель.
-  for (const model of [MODEL, FALLBACK]) {
+  // подбор сетов большой: основная модель думает над ним минуту, поэтому сначала быстрая
+  for (const model of kind === 'sets' ? [FALLBACK, MODEL] : [MODEL, FALLBACK]) {
     try {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body,

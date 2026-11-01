@@ -467,3 +467,8 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 .whyhow summary { cursor: pointer; }
 .bd2 .bar { position: relative; overflow: visible; }
 .bd2 .bar::after { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: rgba(255, 255, 255, .45); }
+/* число строго в центре круга, подпись модели по центру под кругами */
+.ring b { top: 0; left: 0; right: 0; height: 72px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.vcard .vnote { text-align: center; margin-top: 18px; }
+.mvps .vcard.mvp .vstage { height: 136px; }
+.vlabel { font-size: clamp(22px, 11.6cqw, 58px); }

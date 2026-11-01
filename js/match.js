@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611012218';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202611012218';
-import { coachSection, me, itemTimings } from './coach.js?v=202611012218';
-import { icon as ic } from './icons.js?v=202611012218';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611020207';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202611020207';
+import { coachSection, me, itemTimings } from './coach.js?v=202611020207';
+import { icon as ic } from './icons.js?v=202611020207';
 
 let A; // текущий разбор
 let C; // справочники
@@ -198,7 +198,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202611012218').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202611020207').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -828,18 +828,18 @@ async function drawCard() {
   for (let i = 0; i < S; i += 54) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, S); x.moveTo(0, i); x.lineTo(S, i); x.stroke(); }
 
   if (hero) {
-    // герой целиком, без обрезки: вписан справа. Узкий и высокий может встать выше, правее конца заголовка.
-    let k = Math.min(424 / hero.width, 730 / hero.height);
-    let cx = 844;
-    const tall = Math.min(270 / hero.width, 900 / hero.height);
-    if (tall > k) { k = tall; cx = 910; }
+    // герой целиком в правой зоне 500x650 по центру. Узкий и высокий встаёт выше, правее конца заголовка.
+    let k = Math.min(500 / hero.width, 650 / hero.height);
+    let cx = 808;
+    const tall = Math.min(290 / hero.width, 800 / hero.height);
+    if (tall > k * 1.05) { k = tall; cx = 900; }
     const w = hero.width * k;
     const h = hero.height * k;
     x.save();
     if (sport) x.filter = 'grayscale(1) contrast(1.1)';
     x.shadowColor = 'rgba(0,0,0,.7)';
     x.shadowBlur = 40;
-    x.drawImage(hero, cx - w / 2, S - 24 - h, w, h);
+    x.drawImage(hero, cx - w / 2, 950 - h, w, h);
     x.restore();
   }
 
@@ -866,9 +866,10 @@ async function drawCard() {
   x.fillText('ЗАРУИНИЛ', 60, 300);
   x.shadowBlur = 0;
   x.fillStyle = '#ffffff';
-  x.font = `800 60px ${D}`;
-  x.fillText(clip(x, r.name, 640), 64, 390);
-  x.font = '500 30px Inter';
+  let nameSize = 60; // длинный ник уменьшаем, а не обрезаем и не пускаем на героя
+  do x.font = `800 ${nameSize}px ${D}`; while (x.measureText(r.name).width > 490 && (nameSize -= 2) > 30);
+  x.fillText(clip(x, r.name, 490), 64, 390);
+  x.font = '500 25px Inter';
   x.fillStyle = '#9aa0ad';
   x.fillText(`${r.hero} · позиция ${r.role} · ${teamName(r.team)}`, 64, 440);
 
@@ -876,22 +877,22 @@ async function drawCard() {
   x.font = `800 26px ${D}`;
   x.fillStyle = '#ff8a7a';
   x.fillText(`РУИН В КАТКЕ ${r.share}%`, 64, 520);
-  roundRect(x, 64, 540, 560, 16, 8);
+  roundRect(x, 64, 540, 480, 16, 8);
   x.fillStyle = 'rgba(255,255,255,.08)';
   x.fill();
-  const bar = x.createLinearGradient(64, 0, 624, 0);
+  const bar = x.createLinearGradient(64, 0, 544, 0);
   bar.addColorStop(0, '#ffb23d');
   bar.addColorStop(1, '#ff3b3b');
-  roundRect(x, 64, 540, Math.max(16, 560 * Math.min(1, r.share / 40)), 16, 8);
+  roundRect(x, 64, 540, Math.max(16, 480 * Math.min(1, r.share / 40)), 16, 8);
   x.fillStyle = bar;
   x.fill();
 
   // статистика плитками
   const stats = [['У / С / П', `${r.k}/${r.d}/${r.a}`], ['ЗОЛОТО В МИНУТУ', r.gpm], ['УЧАСТИЕ В ДРАКАХ', `${Math.round(r.kp * 100)}%`], ['ВЛИЯНИЕ НА ИГРУ', `${r.score}/100`]];
   stats.forEach(([k, v], i) => {
-    const bx = 64 + (i % 2) * 288;
+    const bx = 64 + (i % 2) * 248;
     const by = 600 + Math.floor(i / 2) * 112;
-    roundRect(x, bx, by, 272, 96, sport ? 4 : 18);
+    roundRect(x, bx, by, 232, 96, sport ? 4 : 18);
     x.fillStyle = 'rgba(255,255,255,.05)';
     x.fill();
     x.strokeStyle = 'rgba(255,255,255,.08)';
@@ -910,7 +911,7 @@ async function drawCard() {
     x.fillStyle = '#ff3b3b';
     x.fillRect(64, 828 + i * 42, 6, 28);
     x.fillStyle = '#e8e8e4';
-    x.fillText(clip(x, n.title, 540), 86, 851 + i * 42);
+    x.fillText(clip(x, n.title, 458), 86, 851 + i * 42);
   });
 
   // MVP победителей и проигравших, друг под другом
@@ -921,12 +922,12 @@ async function drawCard() {
     x.fillText(label, 164, by + 19);
     x.font = '600 21px Inter';
     x.fillStyle = '#e8e8e4';
-    x.fillText(clip(x, `${p.name} · ${p.hero}`, 440), 164, by + 44);
+    x.fillText(clip(x, `${p.name} · ${p.hero}`, 380), 164, by + 44);
   });
 
   // штамп у героя
   x.save();
-  x.translate(S - 290, S - 170);
+  x.translate(808, 1008);
   x.rotate(-0.12);
   x.font = `900 28px ${D}`;
   const sw = x.measureText('РУИНЕР НАЙДЕН').width + 56; // рамка по ширине надписи

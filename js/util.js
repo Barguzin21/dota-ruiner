@@ -140,7 +140,7 @@ export function md(text) {
 const inline = (s) => s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>');
 
 export async function askAI(kind, data) {
-  const r = await fetch(`${API}/ai`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, data }) });
+  const r = await fetch(`${API}/ai`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, data }), signal: AbortSignal.timeout(80000) }); // без тайм-аута кнопка крутится вечно
   const d = await r.json().catch(() => ({}));
   if (!r.ok) {
     const e = new Error(d.error || `ИИ недоступен (${r.status})`);
