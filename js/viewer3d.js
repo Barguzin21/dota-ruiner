@@ -152,6 +152,55 @@ export function createViewer(el, manifest, opt = {}) {
     controls.minDistance = hgt * 0.8;
     controls.maxDistance = hgt * 5;
     resize();
+    if (opt.controls === false) fitByPixels(small ? 1.22 : 1.2);
+  }
+
+  // Математическая рамка не знает, куда герой уходит в анимации и при повороте. Поэтому меряем настоящую картинку:
+  // рендерим с восьми сторон в разные моменты анимации, берём общую занятую область и по ней ставим камеру.
+  function fitByPixels(margin) {
+    const W = renderer.domElement.width;
+    const H = renderer.domElement.height;
+    if (!W || !H) return;
+    const c = document.createElement('canvas');
+    c.width = 120;
+    c.height = Math.max(8, Math.round(120 * H / W));
+    const g2 = c.getContext('2d', { willReadFrequently: true });
+    const halfTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const measure = () => {
+      const t = controls.target;
+      const d = camera.position.distanceTo(t);
+      let top = 1, bot = -1, wide = 0;
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4;
+        camera.position.set(t.x + Math.sin(a) * d, t.y, t.z + Math.cos(a) * d);
+        camera.lookAt(t);
+        mixer?.update(0.37);
+        renderer.render(scene, camera);
+        g2.clearRect(0, 0, c.width, c.height);
+        g2.drawImage(renderer.domElement, 0, 0, c.width, c.height);
+        const px = g2.getImageData(0, 0, c.width, c.height).data;
+        for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+          if (px[(y * c.width + x) * 4 + 3] < 30) continue;
+          const ny = 1 - 2 * (y + 0.5) / c.height;
+          if (ny > bot) bot = ny;
+          if (ny < top) top = ny;
+          wide = Math.max(wide, Math.abs(2 * (x + 0.5) / c.width - 1));
+        }
+      }
+      return { low: top, high: bot, wide, d };
+    };
+    shadow.visible = false;
+    for (let pass = 0; pass < 2; pass++) {
+      const { low, high, wide, d } = measure();
+      if (high <= low) break;
+      const t = controls.target;
+      t.y += (high + low) / 2 * d * halfTan; // сдвиг центра занятой области в центр кадра
+      const next = d * Math.max((high - low) / 2, wide) * margin;
+      camera.position.set(t.x, t.y, t.z + Math.max(next, d * 0.3));
+      camera.lookAt(t);
+    }
+    shadow.visible = true;
+    controls.update();
   }
 
 
