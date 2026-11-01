@@ -175,6 +175,20 @@ export function analyze(m, consts = {}) {
     const w = WEIGHTS[sup ? 'support' : 'core'];
     let score = 100 * sum(Object.entries(w).map(([k, v]) => v * m01[k]));
     const breakdown = Object.entries(w).map(([k, v]) => ({ key: k, label: METRIC_RU[k], value: m01[k], weight: v }));
+    // Метрики сравнивают игрока только с ожиданиями его роли. Кто реально тащил команду, они не видят:
+    // QoP 16/4 и Rubick 3/12 выходили равными. Поэтому отдельная поправка за долю в уроне и убийствах команды.
+    const killShare = kills[t] ? p.kills / kills[t] : 0;
+    const carry = Math.round(clamp((dmgShare - 0.2) * 60 + (killShare - 0.2) * 30, sup ? -3 : -8, 14));
+    score += carry;
+    // Взгляд сильного игрока: не сколько умер, а во что превратил золото и где был, когда решалась игра.
+    const nwShare = teamNw[t] ? (p.net_worth || p.total_gold || 0) / teamNw[t] : 0.2;
+    const conv = nwShare ? dmgShare / nwShare : 1;
+    const gt = p.gold_t || [];
+    const lateGpm = gt.length >= 20 ? (gt[gt.length - 1] - gt[gt.length - 11]) / 10 : null;
+    const rival = m.players.find((q) => team(q) !== t && role(q) === role(p));
+    const nwRatio = rival ? (p.net_worth || 0) / Math.max(1, rival.net_worth || 0) : 1;
+    const richest = !m.players.some((q) => team(q) === t && (q.net_worth || 0) > (p.net_worth || 0));
+    const lastLost = [...bigFights].reverse().find((x) => x.won !== t);
 
     const neg = [];
     const pos = [];
@@ -212,7 +226,16 @@ export function analyze(m, consts = {}) {
     if (toxic >= 2) add(neg, 4 + toxic, 'Токсичность в чате', `${toxic} оскорбительных сообщений.`);
     if ((p.buyback_count || 0) >= Math.max(2, Math.round(mins / 20)) && !p.win) add(neg, 4, 'Дорогие выкупы', `${p.buyback_count} выкупа, команда всё равно проиграла.`);
 
+    if (!sup && mins > 20 && nwShare > 0.24 && conv < 0.7) add(neg, 13, 'Золото не стало уроном', `${Math.round(nwShare * 100)}% золота команды, но только ${Math.round(dmgShare * 100)}% её урона.`);
+    if (!sup && !(t === winner) && lateGpm != null && lateGpm < p.gold_per_min * 0.75) add(neg, 11, 'Исчез в концовке', `За последние 10 минут ${Math.round(lateGpm)} золота в минуту при среднем ${p.gold_per_min}.`);
+    if (!(t === winner) && richest && !sup && kp < 0.45 && mins > 20) add(neg, 12, 'Самый дорогой, но вне игры', `Самый богатый в команде, а участвовал только в ${Math.round(kp * 100)}% убийств.`);
+    if (!sup && !(t === winner) && rival && mins > 20 && nwRatio < 0.6) add(neg, 12, 'Проиграл дуэль позиций', `Ценность в ${(1 / Math.max(0.01, nwRatio)).toFixed(1).replace('.', ',')} раза меньше, чем у ${heroes[rival.hero_id]?.localized_name || 'соперника'} на той же позиции.`);
+    if (!sup && !(t === winner) && mins > 35 && !p.buyback_count && lastLost?.f.players[idx]?.deaths) add(neg, 9, 'Без выкупа в финале', 'Погиб в последней проигранной драке и за всю игру ни разу не выкупился.');
+
     // --- позитив
+    if (dmgShare > 0.33 && killShare > 0.33) add(pos, 16, 'Тащил команду', `${Math.round(dmgShare * 100)}% урона и ${Math.round(killShare * 100)}% убийств команды.`);
+    if (!sup && conv > 1.35 && mins > 20) add(pos, 9, 'Выжал максимум из золота', `${Math.round(nwShare * 100)}% золота команды дали ${Math.round(dmgShare * 100)}% её урона.`);
+    if (!sup && lateGpm != null && lateGpm > p.gold_per_min * 1.3) add(pos, 6, 'Сильная концовка', `${Math.round(lateGpm)} золота в минуту за последние 10 минут.`);
     if (dmgShare > 0.3) add(pos, dmgShare * 40, 'Главный источник урона', `${Math.round(dmgShare * 100)}% урона команды по героям.`);
     if (kp > 0.7) add(pos, kp * 15, 'Был в каждой драке', `KP ${Math.round(kp * 100)}%.`);
     if (m01.farm > 0.75 && !sup) add(pos, 12, 'Отличный фарм', `GPM ${p.gold_per_min}, лучше ${Math.round(m01.farm * 100)}% игроков на герое.`);
@@ -253,7 +276,7 @@ export function analyze(m, consts = {}) {
       items: [0, 1, 2, 3, 4, 5].map((i) => p[`item_${i}`]).filter(Boolean), neutral: p.item_neutral,
       purchases: (p.purchase_log || []).filter((x) => !/^(tango|flask|clarity|ward_|tpscroll|smoke|dust|enchanted_mango|faerie_fire|branches|blood_grenade|ward_dispenser)/.test(x.key)),
       m01, breakdown, score: Math.round(score), neg, pos, laneDiff, laneOpp, deathCost, objDeaths, throwDeaths, firstLost, missedLost,
-      fightsIn: myFights.length, fightsAll: bigFights.length, gold10: g10, lh10: at10(p.lh_t), toxicPenalty: Math.min(10, toxic * 2),
+      fightsIn: myFights.length, fightsAll: bigFights.length, gold10: g10, lh10: at10(p.lh_t), toxicPenalty: Math.min(10, toxic * 2), carry, killShare, nwShare, conv,
       lane: p.lane, laneRole: p.lane_role, heroKeyRaw: heroKey,
       lanePos: p.lane_pos, obsLog: p.obs_log || [], senLog: p.sen_log || [],
       runes: (p.runes_log || []).length, taken: sum(Object.values(p.damage_taken || {})),
@@ -313,7 +336,7 @@ export function verdictStability(losers, seed = 1) {
         tot += v * jitter[k];
         sc += v * jitter[k] * p.m01[k];
       }
-      sc = sc / tot * 100 - p.toxicPenalty;
+      sc = sc / tot * 100 - p.toxicPenalty + p.carry;
       if (sc < worstScore) { worstScore = sc; worst = p; }
     }
     if (worst === base) same++;

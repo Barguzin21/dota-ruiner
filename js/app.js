@@ -1,13 +1,13 @@
 // Роутер, главная, страница игрока.
-import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202610272252';
-import { renderMatch } from './match.js?v=202610272252';
-import { renderSets } from './wardrobe.js?v=202610272252';
-import { coachPage, me, setMe } from './coach.js?v=202610272252';
-import { friendsPage } from './friends.js?v=202610272252';
-import { comparePage } from './compare.js?v=202610272252';
-import { smurfPage } from './smurf.js?v=202610272252';
-import { icon as ic } from './icons.js?v=202610272252';
-import { rankName, analyze } from './analyze.js?v=202610272252';
+import { $, $$, esc, OD, getJSON, consts, heroImg, heroTall, store, toast, fx } from './util.js?v=202611011905';
+import { renderMatch } from './match.js?v=202611011905';
+import { renderSets } from './wardrobe.js?v=202611011905';
+import { coachPage, me, setMe } from './coach.js?v=202611011905';
+import { friendsPage } from './friends.js?v=202611011905';
+import { comparePage } from './compare.js?v=202611011905';
+import { smurfPage } from './smurf.js?v=202611011905';
+import { icon as ic } from './icons.js?v=202611011905';
+import { rankName, analyze } from './analyze.js?v=202611011905';
 
 const app = $('#app');
 const STEAM64 = 76561197960265728n;
@@ -77,7 +77,7 @@ function home() {
   $('#sidq').oninput = (e) => ($('#sidout').innerHTML = steamIds(e.target.value));
   fx(app);
   if (me()) myMatches(me());
-  import('./viewer3d.js?v=202610272252').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
+  import('./viewer3d.js?v=202611011905').then((v3) => v3.showcase($('.home3d'), hero, 'red')).catch(() => {});
 }
 
 // «Мои катки»: 5 последних игр, пометка руинер/MVP и влияние появляются по мере разбора.
@@ -215,6 +215,13 @@ async function ruinStats(account, list, c) {
     $('#rs').innerHTML = tiles.map(([k, v]) => `<div class="tile"><div class="lbl">${k}</div><div class="num">${v}</div></div>`).join('');
   }
 }
+
+// Новый заход или запуск приложения: страницу тренера не восстанавливаем, открываем главную. Ссылки на матчи работают.
+try {
+  const fresh = !sessionStorage.getItem('opened');
+  sessionStorage.setItem('opened', '1');
+  if (fresh && (matchMedia('(display-mode: standalone)').matches ? !location.hash.startsWith('#/match') : /^#\/(coach|friends)/.test(location.hash))) history.replaceState(null, '', location.pathname);
+} catch {}
 
 async function route() {
   const [, page, arg] = location.hash.split(/[/?]/);

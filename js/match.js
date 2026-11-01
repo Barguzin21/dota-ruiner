@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202610272252';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202610272252';
-import { coachSection, me, itemTimings } from './coach.js?v=202610272252';
-import { icon as ic } from './icons.js?v=202610272252';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611011905';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202611011905';
+import { coachSection, me, itemTimings } from './coach.js?v=202611011905';
+import { icon as ic } from './icons.js?v=202611011905';
 
 let A; // текущий разбор
 let C; // справочники
@@ -199,7 +199,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202610272252').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202611011905').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -231,11 +231,13 @@ function action(act) {
   } else if (act === 'why') {
     const losers = A.players.filter((p) => !p.win).sort((a, b) => a.score - b.score);
     box.innerHTML = `<div class="panel reveal"><h3>Почему именно он?</h3>
-      <p style="margin-top:0;color:var(--muted)">Каждого игрока модель сравнивает с другими на том же герое (перцентили OpenDota) и с ожиданиями его роли. Считаются 10–11 метрик: фарм, урон, смерти и их цена, дисциплина (смерти без команды, перед потерей зданий, при большом перевесе), командные драки, линия к 10:00, обзор, давление на здания. Руинер, игрок проигравшей команды с самым низким итогом. Устойчивость ${A.stability}% означает, что при 400 случайных вариантах весов он остаётся руинером в ${A.stability}% случаев.</p>
+      <p id="whyai" class="whyai"><span class="psub">Смотрим катку глазами сильного игрока…</span></p>
+      <details class="whyhow"><summary>Как считается</summary><p style="color:var(--muted)">Каждого игрока модель сравнивает с другими на том же герое (перцентили OpenDota) и с ожиданиями его роли. Считаются 10–11 метрик: фарм, урон, смерти и их цена, дисциплина (смерти без команды, перед потерей зданий, при большом перевесе), командные драки, линия к 10:00, обзор, давление на здания. Руинер, игрок проигравшей команды с самым низким итогом. Устойчивость ${A.stability}% означает, что при 400 случайных вариантах весов он остаётся руинером в ${A.stability}% случаев. Плюс поправка за реальную долю в уроне и убийствах команды.</p></details>
       <div class="whygrid">${losers.map((p) => `<div class="sc"><span class="pname">${esc(p.hero)}</span>${scoreBar(p.score)}<span class="num">${p.score}</span><span class="chip ${p === r ? 'neg' : ''}">руин ${p.share}%</span></div>`).join('')}</div>
       <div class="sub">Из чего сложился счёт ${esc(r.hero)}</div>${breakdown(r)}
       <div class="sub">Все сигналы против ${esc(r.hero)}</div>
       <div class="reasons">${r.neg.map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('')}</div></div>`;
+    whyAI(r);
   } else if (act === 'coach') {
     $('#sec-coach').scrollIntoView({ behavior: 'smooth' });
     return;
@@ -250,11 +252,25 @@ function action(act) {
 }
 
 // Разложение итога: каждая метрика, её значение 0–100 и вес в формуле.
+// ИИ-объяснение наверху «Почему он?», кэшируется по матчу; без ИИ короткое описание по правилам.
+async function whyAI(r) {
+  const el = $('#whyai');
+  const key = `why:${A.id}`;
+  let text = store.get(key, null);
+  if (!text) {
+    const data = { ruiner: r.hero, gap: A.gap, duration: mmss(A.duration), players: A.players.map((p) => ({ hero: p.hero, team: p.win ? 'победа' : 'поражение', pos: p.role, kda: `${p.k}/${p.d}/${p.a}`, gpm: p.gpm, xpm: p.xpm, nw: p.nw, damageShare: Math.round(p.dmgShare * 100), goldShare: Math.round(p.nwShare * 100), kp: Math.round(p.kp * 100), wards: p.obs + p.sen, stuns: Math.round(p.stuns), lane10: p.laneDiff, score: p.score, bad: p.neg.map((x) => x.text), good: p.pos.map((x) => x.text) })) };
+    text = await askAI('why', data).catch(() => null);
+    if (text) store.set(key, text);
+  }
+  if (document.body.contains(el)) el.textContent = text || `${r.hero}: ${r.neg.slice(0, 3).map((x) => x.text).join(' ') || 'самый низкий итог в проигравшей команде.'}`;
+}
+
 function breakdown(p) {
-  return `<div class="bd">${p.breakdown.slice().sort((a, b) => b.weight - a.weight).map((b) => {
+  // от сильных сторон к слабым: метка на середине = средний игрок, правее лучше, левее хуже
+  return `<div class="bd bd2">${p.breakdown.slice().sort((a, b) => b.value - a.value).map((b) => {
     const v = Math.round(b.value * 100);
-    return `<div class="bdr"><span>${b.label}</span><div class="bar ${v >= 60 ? 'good' : v >= 40 ? 'mid' : ''}"><i style="--w:${v}%"></i></div><b>${v}</b><em>вес ${Math.round(b.weight * 100)}%</em></div>`;
-  }).join('')}${p.toxicPenalty ? `<div class="bdr"><span>Штраф за токсичность</span><div></div><b>−${p.toxicPenalty}</b><em></em></div>` : ''}</div>`;
+    return `<div class="bdr"><span>${b.label}</span><div class="bar ${v >= 60 ? 'good' : v >= 40 ? 'mid' : ''}"><i style="--w:${v}%"></i></div><b>${v}</b><em>${v >= 60 ? 'сильно' : v >= 40 ? 'средне' : 'слабо'}</em></div>`;
+  }).join('')}${p.carry ? `<div class="bdr"><span>Вклад в урон и убийства</span><div></div><b>${p.carry > 0 ? '+' : '−'}${Math.abs(p.carry)}</b><em>к итогу</em></div>` : ''}${p.toxicPenalty ? `<div class="bdr"><span>Штраф за токсичность</span><div></div><b>−${p.toxicPenalty}</b><em></em></div>` : ''}</div>`;
 }
 
 function showTab(k, el) {
@@ -290,10 +306,9 @@ function players(el) {
 function prow(p) {
   const cls = p === A.ruiner ? 'ruiner' : p === A.mvp ? 'mvp' : '';
   const tag = (p === A.ruiner ? '<span class="tag r">РУИНЕР</span>' : p === A.mvp ? '<span class="tag m">MVP</span>' : '') + (me() && p.accountId === me() ? '<span class="tag you">ТЫ</span>' : '');
-  const top = p.neg[0] || p.pos[0];
   return `<div class="prow ${cls}" data-i="${p.idx}">
     <img class="h" src="${portrait(p)}" alt="">
-    <div style="min-width:0"><div class="pname">${esc(p.name)}${tag}</div><div class="psub">${esc(p.hero)} · поз. ${p.role}${top ? ` · ${esc(top.title)}` : ''}</div></div>
+    <div style="min-width:0"><div class="pname">${esc(p.name)}${tag}</div><div class="psub">${esc(p.hero)} · поз. ${p.role}</div></div>
     <div class="num">${p.k}/${p.d}/${p.a}</div>
     <div class="num hide-m hide-s">${p.gpm}</div>
     <div class="num hide-m hide-s">${Math.round(p.kp * 100)}%</div>
@@ -800,7 +815,7 @@ async function drawCard() {
   const x = cv.getContext('2d');
   await document.fonts.ready;
   const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
-  const [hero, mvp, lmvp] = await Promise.all([load(heroFull(r.heroKey)), load(heroImg(A.mvp.heroKey)), load(heroImg(A.bestLoser.heroKey))]);
+  const [hero, mvp, lmvp] = await Promise.all([load(`img/heroes/card/${r.heroKey}.webp`).then((i) => i || load(heroFull(r.heroKey))), load(heroImg(A.mvp.heroKey)), load(heroImg(A.bestLoser.heroKey))]);
 
   // фон: тёмный с красным свечением за героем и тонкой сеткой
   x.fillStyle = sport ? '#0d0e10' : '#0a0b10';
@@ -814,17 +829,18 @@ async function drawCard() {
   for (let i = 0; i < S; i += 54) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, S); x.moveTo(0, i); x.lineTo(S, i); x.stroke(); }
 
   if (hero) {
-    // герой крупно справа: высота 830, голова правее конца заголовка, низом к краю; обрезаем по x=640, чтобы широкое оружие не наезжало на текст слева
-    const h = 830;
-    const w = hero.width * (h / hero.height);
+    // герой целиком, без обрезки: вписан справа. Узкий и высокий может встать выше, правее конца заголовка.
+    let k = Math.min(424 / hero.width, 730 / hero.height);
+    let cx = 844;
+    const tall = Math.min(270 / hero.width, 900 / hero.height);
+    if (tall > k) { k = tall; cx = 910; }
+    const w = hero.width * k;
+    const h = hero.height * k;
     x.save();
-    x.beginPath();
-    x.rect(640, 0, S - 640, S);
-    x.clip();
     if (sport) x.filter = 'grayscale(1) contrast(1.1)';
     x.shadowColor = 'rgba(0,0,0,.7)';
     x.shadowBlur = 40;
-    x.drawImage(hero, 870 - w / 2, S - 20 - h, w, h);
+    x.drawImage(hero, cx - w / 2, S - 24 - h, w, h);
     x.restore();
   }
 
@@ -837,7 +853,10 @@ async function drawCard() {
   x.font = `600 22px ${M}`;
   x.fillStyle = '#8d9198';
   x.textAlign = 'right';
-  x.fillText(`МАТЧ ${A.id}`, S - 64, 94);
+  x.fillText(`МАТЧ ${A.id}`, S - 64, 86);
+  x.font = '500 18px Inter';
+  x.fillStyle = '#6f7480';
+  x.fillText(`${location.host}${location.pathname.replace(/\/$/, '')}`, S - 64, 114);
   x.textAlign = 'left';
   if (sport) { x.fillStyle = '#e8322c'; x.fillRect(64, 122, S - 128, 4); }
 
@@ -905,11 +924,6 @@ async function drawCard() {
     x.fillStyle = '#e8e8e4';
     x.fillText(clip(x, `${p.name} · ${p.hero}`, 440), 164, by + 44);
   });
-  x.font = '500 20px Inter';
-  x.fillStyle = '#6f7480';
-  x.textAlign = 'right';
-  x.fillText(`${location.host}${location.pathname.replace(/\/$/, '')}`, S - 64, 1036);
-  x.textAlign = 'left';
 
   // штамп у героя
   x.save();

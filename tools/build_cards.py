@@ -28,6 +28,13 @@ def full(img):
     return out.resize((600, 900), Image.LANCZOS)
 
 
+def whole(img):
+    # вся фигура с оружием, без обрезки — для карточки руинера
+    img = img.crop(img.getchannel('A').point(lambda v: 255 if v > 20 else 0).getbbox())
+    img.thumbnail((1000, 1000), Image.LANCZOS)
+    return img
+
+
 if __name__ == '__main__':
     n = 0
     for f in glob.glob(os.path.join(SRC, '*.png')):
@@ -36,5 +43,7 @@ if __name__ == '__main__':
             Image.open(f).convert('RGB').save(os.path.join(ROOT, 'img', 'heroes', f'{key[2:]}.webp'), 'WEBP', quality=86)
             continue
         full(Image.open(f).convert('RGBA')).save(os.path.join(ROOT, 'img', 'heroes', 'full', f'{key}.webp'), 'WEBP', quality=84)
+        os.makedirs(os.path.join(ROOT, 'img', 'heroes', 'card'), exist_ok=True)
+        whole(Image.open(f).convert('RGBA')).save(os.path.join(ROOT, 'img', 'heroes', 'card', f'{key}.webp'), 'WEBP', quality=84)
         n += 1
     print('портретов', n)
