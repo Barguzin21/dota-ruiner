@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611011905';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202611011905';
-import { coachSection, me, itemTimings } from './coach.js?v=202611011905';
-import { icon as ic } from './icons.js?v=202611011905';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611012218';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202611012218';
+import { coachSection, me, itemTimings } from './coach.js?v=202611012218';
+import { icon as ic } from './icons.js?v=202611012218';
 
 let A; // текущий разбор
 let C; // справочники
@@ -108,7 +108,6 @@ function draw(app) {
           <div class="rings">
             ${ring(r.share, 'руин в катке', 'red', 'Доля вины в поражении среди пяти проигравших')}
             ${ring(r.score, 'влияние на игру', 'blue', 'Итог модели 0–100: чем ниже, тем хуже сыграл')}
-            ${ring(A.stability, 'устойчивость', 'gold', 'Как часто он остаётся руинером, если 400 раз случайно поменять веса метрик')}
           </div>
           <div class="vnote">Уверенность модели <b>${A.confidence}%</b>${A.gap < 6 ? ` · почти вровень с ${esc(A.nearRuiner.hero)}` : ''}</div>
         </div>
@@ -199,7 +198,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202611011905').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202611012218').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D

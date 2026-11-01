@@ -122,7 +122,10 @@ export function createViewer(el, manifest, opt = {}) {
       mixer.clipAction(gltf.animations[0]).play();
     }
     // Стандартные части героя, вынесенные в отдельные модели, рисуются предметами, тело оставляем.
-    const box = new THREE.Box3().setFromObject(hero);
+    // рамка по позе из анимации, а не по исходной: иначе у части героев (Earthshaker) модель уезжает вверх
+    mixer?.update(0);
+    hero.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(hero, true);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     const hgt = Math.max(size.y, size.x * 0.8);
@@ -130,7 +133,7 @@ export function createViewer(el, manifest, opt = {}) {
     shadow.scale.setScalar(Math.max(size.x, size.z) * 1.6);
     controls.target.set(center.x, center.y, center.z);
     // запас сверху и по бокам: оружие и плащи бывают в полтора раза больше тела
-    camera.position.set(center.x, center.y + hgt * 0.1, center.z + hgt * (opt.controls === false ? 2.5 : 3.1));
+    camera.position.set(center.x, center.y + hgt * 0.1, center.z + hgt * (opt.controls === false ? (el.clientHeight < 200 ? 3.4 : 2.5) : 3.1));
     camera.near = hgt / 100;
     camera.far = hgt * 50;
     controls.minDistance = hgt * 0.8;
