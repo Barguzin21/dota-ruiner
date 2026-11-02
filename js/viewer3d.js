@@ -152,12 +152,12 @@ export function createViewer(el, manifest, opt = {}) {
     controls.minDistance = hgt * 0.8;
     controls.maxDistance = hgt * 5;
     resize();
-    if (opt.controls === false) fitByPixels(small ? 1.22 : 1.2, small ? 1.22 : 0.92); // в высоком окне руинера оружию по бокам можно чуть выйти за край, зато герой крупный
+    if (opt.controls === false) fitByPixels(small, small ? 1.22 : 1.2, small ? 1.22 : 0.92); // в высоком окне руинера оружию по бокам можно чуть выйти за край, зато герой крупный
   }
 
   // Математическая рамка не знает, куда герой уходит в анимации и при повороте. Поэтому меряем настоящую картинку:
   // рендерим с восьми сторон в разные моменты анимации, берём общую занятую область и по ней ставим камеру.
-  function fitByPixels(margin, wideMargin = margin) {
+  function fitByPixels(small, margin, wideMargin = margin) {
     const W = renderer.domElement.width;
     const H = renderer.domElement.height;
     if (!W || !H) return;
@@ -194,9 +194,12 @@ export function createViewer(el, manifest, opt = {}) {
       const { low, high, wide, d } = measure();
       if (high <= low) break;
       const t = controls.target;
-      t.y += (high + low) / 2 * d * halfTan; // сдвиг центра занятой области в центр кадра
-      const next = d * Math.max((high - low) / 2 * margin, wide * wideMargin);
-      camera.position.set(t.x, t.y, t.z + Math.max(next, d * 0.3));
+      // в маленьком окне герой по центру; в высоком окне руинера стоит ногами внизу (у штампа) и занимает почти всю высоту
+      const span = small ? 2 / margin : 1.72;
+      const want = small ? 0 : 0.06; // где должен оказаться центр героя по высоте (-1 низ, 1 верх)
+      const next = Math.max(d * (high - low) / span, d * wide * wideMargin, d * 0.3);
+      t.y += ((high + low) / 2 * d - want * next) * halfTan;
+      camera.position.set(t.x, t.y, t.z + next);
       camera.lookAt(t);
     }
     shadow.visible = true;
