@@ -107,6 +107,12 @@ export function analyze(m, consts = {}) {
   const teamVision = { radiant: 0, dire: 0 };
   for (const p of m.players) if (isSupport(p)) teamVision[team(p)] += (p.obs_placed ?? (p.obs_log || []).length) + (p.sen_placed ?? (p.sen_log || []).length) * 0.6;
 
+  // медианы этого матча: страхуют от странных бенчмарков OpenDota (Турбо, новые герои), «отстал» только если хуже лобби
+  const med = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)] || 0; };
+  const medXpm = med(m.players.map((p) => p.xp_per_min || 0));
+  const medCoreGpm = med(m.players.filter((p) => role(p) <= 3).map((p) => p.gold_per_min || 0));
+  const medDpm = med(m.players.map((p) => (p.hero_damage || 0) / mins));
+
   const players = m.players.map((p, idx) => {
     const t = team(p);
     const h = heroes[p.hero_id] || {};
@@ -212,7 +218,7 @@ export function analyze(m, consts = {}) {
       score = Math.min(score, 3);
       add(neg, 100, 'Покинул игру', 'Игрок вышел из матча, команда доигрывала вчетвером.');
     }
-    if (!sup && m01.farm < 0.25) add(neg, 30 * (0.3 - m01.farm) * 4, 'Фарм ниже ожидания', `GPM ${p.gold_per_min}, хуже, чем у ${Math.round((1 - m01.farm) * 100)}% игроков на этом герое.`);
+    if (!sup && m01.farm < 0.25 && p.gold_per_min < medCoreGpm * 0.9) add(neg, 30 * (0.3 - m01.farm) * 4, 'Фарм ниже ожидания', `GPM ${p.gold_per_min}, хуже, чем у ${Math.round((1 - m01.farm) * 100)}% игроков на этом герое.`);
     const manyDeaths = p.deaths >= Math.max(sup ? 10 : 8, mins * (sup ? 0.26 : 0.2));
     if (manyDeaths || (m01.deaths < 0.15 && p.deaths >= 6)) add(neg, 8 + p.deaths * (sup ? 1.5 : 2), 'Слишком много смертей', `${p.deaths} смертей, мёртвым ${Math.round(deadShare * 100)}% игры.`);
     if (fed > Math.max(3500, mins * 130) && p.deaths > p.kills + p.assists) add(neg, fed / 300, 'Накормил врагов', `Враги получили ${fmt(fed)} золота за его смерти, сам потерял ${fmt(lost)}.`);
@@ -230,8 +236,8 @@ export function analyze(m, consts = {}) {
     if (!sup && mins > 25 && (p.tower_damage || 0) < 500) add(neg, 8, 'Не давил строения', `${fmt(p.tower_damage || 0)} урона по строениям за ${Math.round(mins)} минут.`);
     if (sup && obs < mins / (role(p) === 5 ? 6 : 10) && teamVision[t] < mins * 0.45 && parsed) add(neg, 12, 'Мало обзора', `${obs} observer и ${sen} sentry за ${Math.round(mins)} минут.`);
     // не про смерти: урон, опыт, работа саппорта
-    if (!sup && mins > 20 && m01.dmg < 0.2) add(neg, 10, 'Мало урона по героям', `${fmt((p.hero_damage || 0) / mins)} урона в минуту, меньше, чем у ${Math.round((1 - m01.dmg) * 100)}% игроков на герое.`);
-    if (mins > 20 && m01.xp < 0.18) add(neg, sup ? 6 : 9, 'Отстал по опыту', `${p.xp_per_min} опыта в минуту, ${p.level} уровень к концу игры.`);
+    if (!sup && mins > 20 && m01.dmg < 0.2 && (p.hero_damage || 0) / mins < medDpm) add(neg, 10, 'Мало урона по героям', `${fmt((p.hero_damage || 0) / mins)} урона в минуту, меньше, чем у ${Math.round((1 - m01.dmg) * 100)}% игроков на герое.`);
+    if (mins > 20 && m01.xp < 0.18 && p.xp_per_min < medXpm * 0.85) add(neg, sup ? 6 : 9, 'Отстал по опыту', `${p.xp_per_min} опыта в минуту, ${p.level} уровень к концу игры.`);
     if (sup && mins > 20 && m01.utility < 0.15 && parsed) add(neg, 8, 'Мало пользы в драках', `${Math.round(p.stuns || 0)} с контроля, ${fmt(p.hero_healing || 0)} хила и ${p.camps_stacked || 0} стаков за игру.`);
     const enemyObs = sum(m.players.filter((q) => team(q) !== t).map((q) => q.obs_placed ?? (q.obs_log || []).length));
     const dewards = (p.observer_kills || 0) + (p.sentry_kills || 0);

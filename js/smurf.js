@@ -1,7 +1,7 @@
 // Проверка на смурфа: опыт аккаунта против уровня игры.
-import { $, esc, fmt, OD, getJSON, consts, heroImg, fx } from './util.js?v=202611030043';
-import { rankName } from './analyze.js?v=202611030043';
-import { icon as ic } from './icons.js?v=202611030043';
+import { $, esc, fmt, OD, getJSON, consts, heroImg, fx } from './util.js?v=202611030045';
+import { rankName } from './analyze.js?v=202611030045';
+import { icon as ic } from './icons.js?v=202611030045';
 
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 
