@@ -493,3 +493,29 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 .tag.v.warn { background: rgba(255, 178, 61, .16); color: #ffc46b; }
 .tag.v.gold { background: rgba(143, 184, 255, .16); color: #a9c7ff; }
 .tag.v.good { background: rgba(79, 210, 122, .16); color: #6fe39a; }
+/* идеи RUINER: итог игрока, соперник по минутам, смерти, вещи для команды, обзор, медали, голос до трёх */
+.mseg { margin: 0 0 10px; }
+.psum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.psum > div { display: grid; gap: 4px; align-content: start; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .02); font-size: 13px; }
+.psum b { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.psum b.ok { color: var(--green); } .psum b.no { color: #ff7a7a; }
+.rivt { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rivt th, .rivt td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+.rivt td:first-child { text-align: left; color: var(--muted); }
+.rivt small.up { color: var(--green); } .rivt small.down { color: #ff7a7a; }
+.dlist { display: grid; gap: 4px; }
+.drow { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); font-size: 13px; }
+.drow .psub { grid-column: 2 / -1; font-size: 12px; }
+.drow.solo { border-color: rgba(255, 59, 59, .35); }
+.drow .tm { font: 700 13px var(--display); }
+.titems { display: flex; flex-wrap: wrap; gap: 6px; }
+.titems .chip img { width: 22px; height: 16px; object-fit: cover; border-radius: 3px; margin-right: 4px; vertical-align: -3px; }
+.wgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.wnums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 6px 0; font-size: 12px; color: var(--muted); }
+.wnums b { display: block; font: 800 18px var(--display); color: var(--text); }
+.medal { display: inline-block; margin-top: 6px; padding: 2px 9px; border-radius: 99px; font: 700 11px var(--display); font-style: normal; background: #6b4a2a; color: #f3d2ad; }
+.medal.m-Серебро { background: #5b6170; color: #e7ebf3; } .medal.m-Золото { background: #8a6a17; color: #ffe69a; }
+.medal.m-Платина { background: #2f6b73; color: #c9f5f8; } .medal.m-Грандмастер { background: #5a2b7a; color: #f0d2ff; }
+.vote .chip.on { border-color: var(--red); background: rgba(255, 59, 59, .14); }
+.vote .chip.on::after { content: attr(data-n); margin-left: 6px; font-weight: 800; color: var(--red); }
+@media (max-width: 700px) { .psum, .wgrid { grid-template-columns: 1fr; } }

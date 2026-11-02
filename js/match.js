@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611030018';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202611030018';
-import { coachSection, me, itemTimings } from './coach.js?v=202611030018';
-import { icon as ic } from './icons.js?v=202611030018';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611030043';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202611030043';
+import { coachSection, me, itemTimings, TIPS } from './coach.js?v=202611030043';
+import { icon as ic } from './icons.js?v=202611030043';
 
 let A; // текущий разбор
 let C; // справочники
@@ -90,6 +90,7 @@ function draw(app) {
       ${A.rank ? `<div class="pill"><span class="lbl">Средний ранг</span><b>${rankName(A.rank)}</b></div>` : ''}
       <div class="pill"><span class="lbl">Дата</span><b>${new Date(A.startTime * 1000).toLocaleDateString('ru-RU')}</b></div>
     </div>
+    ${A.turbo ? '<div class="banner"><span>Турбо: модель заточена под обычные игры, в Турбо вердикты ориентировочные.</span></div>' : ''}
     ${A.parsed ? '' : '<div class="banner" id="parse"><div class="spinner" style="width:22px;height:22px;margin:0;border-width:2px"></div><span>Реплей ещё не разобран, заказали разбор у OpenDota. Пока показываем анализ по общей статистике.</span></div>'}
     <section class="verdict">
       <div class="vcard tilt reveal"><div class="gyro" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -198,7 +199,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202611030018').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202611030043').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -279,17 +280,19 @@ function showTab(k, el) {
 }
 
 // ---------- игроки
-function players(el) {
+function players(el, mn = 0) {
   const teams = ['radiant', 'dire'].sort((a) => (a === A.winner ? -1 : 1));
-  el.innerHTML = teams.map((t) => {
+  const mins = [10, 20, 40].filter((x) => x * 60 <= A.duration);
+  el.innerHTML = `<div class="seg mseg reveal" id="pmin"><button data-m="0" class="${mn ? '' : 'on'}">Итог</button>${mins.map((x) => `<button data-m="${x}" class="${mn === x ? 'on' : ''}">${x}′</button>`).join('')}</div>` + teams.map((t) => {
     const win = t === A.winner;
     return `
     <div class="panel reveal"><div class="teamhead"><span class="${t === 'radiant' ? 'rad' : 'dire'}">${teamName(t)} · ${win ? 'победа' : 'поражение'}</span>
     <span class="lbl">Ценность команды ${fmt(A.teamNw[t])}</span></div>
-    <div class="prow thead"><span></span><span>Игрок</span><span>Убийства / смерти / помощь</span><span class="hide-m hide-s">Золото в минуту</span>
+    <div class="prow thead"><span></span><span>Игрок</span><span>${mn ? `Убийства / смерти к ${mn}′` : 'Убийства / смерти / помощь'}</span><span class="hide-m hide-s">${mn ? `Золото к ${mn}′` : 'Золото в минуту'}</span>
       <span class="hide-m hide-s">Участие в драках</span><span>Влияние на игру (0–100)</span><span class="hide-s">${win ? 'Вклад в победу' : 'Руин в катке'}</span><span class="hide-s"></span></div>
-    ${A.players.filter((p) => p.team === t).sort((a, b) => a.role - b.role).map(prow).join('')}</div>`;
-  }).join('');
+    ${A.players.filter((p) => p.team === t).sort((a, b) => a.role - b.role).map((p) => prow(p, mn)).join('')}</div>`;
+  }).join('') + wardsPanel();
+  $$('#pmin button', el).forEach((b) => (b.onclick = () => { players(el, +b.dataset.m); fx(el); }));
   $$('.prow:not(.thead)', el).forEach((row) => (row.onclick = () => {
     const open = row.classList.toggle('open');
     const next = row.nextElementSibling;
@@ -304,15 +307,16 @@ function players(el) {
 
 const VCLS = { 'Слил?': 'bad', 'Под вопросом': 'warn', 'Не вытащил': 'gold', 'Тащил': 'good', 'Был в сторонке': 'warn' };
 
-function prow(p) {
+function prow(p, mn = 0) {
+  const tl = mn && p.timeline.find((x) => x.mn === mn);
   const cls = p === A.ruiner ? 'ruiner' : p === A.mvp ? 'mvp' : '';
   const tag = (p === A.ruiner ? '<span class="tag r">РУИНЕР</span>' : p === A.mvp ? '<span class="tag m">MVP</span>' : '')
     + (p.label ? `<span class="tag v ${VCLS[p.label] || ''}" title="Вердикт игроку, место ${p.place} из 5 по вкладу в команде">${p.label}</span>` : '') + (me() && p.accountId === me() ? '<span class="tag you">ТЫ</span>' : '');
   return `<div class="prow ${cls}" data-i="${p.idx}">
     <img class="h" src="${portrait(p)}" alt="">
     <div style="min-width:0"><div class="pname">${esc(p.name)}${tag}</div><div class="psub">${esc(p.hero)} · поз. ${p.role} · ${p.place}-й в команде</div></div>
-    <div class="num">${p.k}/${p.d}/${p.a}</div>
-    <div class="num hide-m hide-s">${p.gpm}</div>
+    <div class="num">${tl ? `${tl.k}/${tl.d}` : `${p.k}/${p.d}/${p.a}`}</div>
+    <div class="num hide-m hide-s">${tl ? fmt(tl.gold ?? 0) : p.gpm}</div>
     <div class="num hide-m hide-s">${Math.round(p.kp * 100)}%</div>
     <div class="sc">${scoreBar(p.score)}<span class="num">${p.score}</span></div>
     <div class="hide-s"><span class="share ${p.win ? 'w' : 'l'}" style="--p:${p.share}">${p.share}%</span></div>
@@ -325,7 +329,8 @@ const itemIcons = (ids) => ids.map((id) => {
 }).join('');
 
 function pdetail(p) {
-  const st = [['Ценность героя (NW)', fmt(p.nw)], ['Опыт в минуту', p.xpm], ['Добито / не отдано', `${p.lh} / ${p.dn}`], ['Урон по героям', fmt(p.dmg)],
+  const place = (n) => `${n}-е из 10`;
+  const st = [['Ценность героя (NW)', fmt(p.nw), place(p.nwPlace)], ['Получил урона от героев', fmt(p.taken)], ['Опыт в минуту', p.xpm], ['Добито / не отдано', `${p.lh} / ${p.dn}`, place(p.lhPlace)], ['Урон по героям', fmt(p.dmg), place(p.dmgPlace)],
     ['Доля урона команды', `${Math.round(p.dmgShare * 100)}%`], ['Урон по зданиям', fmt(p.tower)], ['Лечение', fmt(p.heal)], ['Варды obs / sentry', `${p.obs} / ${p.sen}`],
     ['Контроль', `${Math.round(p.stuns)} с`], ['Мёртв от игры', `${Math.round(p.deadShare * 100)}%`], ['Цена смертей', fmt(p.deathCost)], ['Скормил врагам', fmt(p.fed)],
     ['Большие драки', p.fightsAll ? `${p.fightsIn} из ${p.fightsAll}` : '-'], ['Золото к 10:00', p.gold10 != null ? fmt(p.gold10) : '-'],
@@ -333,12 +338,70 @@ function pdetail(p) {
   return `<div class="pdetail">
     <div class="stats">${st.map(([k, v, s]) => statTile(k, v, s)).join('')}</div>
     <div class="items">${itemIcons([...p.items, p.neutral].filter(Boolean))}</div>
+    ${summaryBlock(p)}
+    ${rivalBlock(p)}
+    ${deathsBlock(p)}
+    ${teamBlock(p)}
     <div class="sub">Из чего сложился счёт (${p.score}/100)</div>${breakdown(p)}
     ${p.neg.length ? `<div class="sub">Ошибки</div><div class="reasons">${p.neg.map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('')}</div>` : ''}
     ${p.pos.length ? `<div class="sub">Сильные стороны</div><div class="reasons">${p.pos.map((x) => `<div class="reason pos"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('')}</div>` : ''}
     <div class="actions"><button class="btn" data-coach>${ic('sparkles')} Советы от ИИ</button><a class="btn ghost" href="#/sets/${p.heroKey}">${ic('shirt')} Сеты на ${esc(p.hero)}</a>
     ${p.accountId ? `<a class="btn ghost" href="#/player/${p.accountId}">Другие матчи игрока</a>` : ''}</div>
     <div data-coachbox></div></div>`;
+}
+
+// Итог по игре: что получилось, что нет и до трёх советов (идея RUINER)
+function summaryBlock(p) {
+  const tips = p.neg.map((n) => TIPS[n.title]?.how?.[0]).filter(Boolean).slice(0, 3);
+  return `<div class="sub">Итог по игре · ${esc(p.label || '')}, ${p.place}-й по вкладу в команде</div><div class="psum">
+    <div><b class="ok">Получилось</b>${p.pos.slice(0, 3).map((x) => `<span>${esc(x.title)}</span>`).join('') || '<span class="psub">ничего заметного</span>'}</div>
+    <div><b class="no">Не получилось</b>${p.neg.slice(0, 3).map((x) => `<span>${esc(x.title)}</span>`).join('') || '<span class="psub">явных ошибок нет</span>'}</div>
+    <div><b>Что улучшить</b>${tips.map((x) => `<span>${esc(x)}</span>`).join('') || '<span class="psub">так держать</span>'}</div></div>`;
+}
+
+// Сравнение с соперником той же позиции на 10/20/40 минуте
+function rivalBlock(p) {
+  const r = A.players.find((q) => q.team !== p.team && q.role === p.role);
+  if (!r || !p.timeline.length) return '';
+  // inv: у смертей меньше значит лучше
+  const row = (lbl, f, inv = false) => `<tr><td>${lbl}</td>${p.timeline.map((x, i) => { const a = f(x); const b = f(r.timeline[i] || {}); const d = a != null && b != null ? a - b : null;
+    const good = inv ? d < 0 : d > 0;
+    return `<td>${a != null ? fmt(a) : '-'} <small class="${!d ? '' : good ? 'up' : 'down'}">${d == null ? '' : `${d > 0 ? '+' : d < 0 ? '−' : ''}${fmt(Math.abs(d))}`}</small></td>`; }).join('')}</tr>`;
+  return `<div class="sub">Против ${esc(r.hero)} (та же позиция у соперника)</div><table class="rivt"><tr><th></th>${p.timeline.map((x) => `<th>${x.mn}′</th>`).join('')}</tr>
+    ${row('Золото', (x) => x.gold)}${row('Добивания', (x) => x.lh)}${row('Опыт', (x) => x.xp)}${row('Убийства', (x) => x.k)}${row('Смерти', (x) => x.d, true)}</table>`;
+}
+
+// Каждая смерть: кто добил, был ли с командой, сколько потерял
+function deathsBlock(p) {
+  if (!p.deathsInfo.length) return '';
+  return `<div class="sub">Почему умирал · ${p.deathsInfo.length}</div><div class="dlist">${p.deathsInfo.map((d) => `<div class="drow ${d.solo ? 'solo' : ''}">
+    <span class="tm">${mmss(d.t)}</span><span>убил ${esc(d.by)}</span><span class="chip ${d.solo ? 'neg' : ''}">${d.solo ? 'один, без команды' : d.first ? 'первым в проигранной драке' : 'в драке'}</span>
+    <span class="psub">−${fmt(d.lost)} золота · врагу +${fmt(d.fed)} · ${d.dead} с на респе</span></div>`).join('')}</div>`;
+}
+
+// Вещи для команды: варды, смоки, ауры и сейвы союзников
+const TEAM_RU = { ward_observer: 'Observer', ward_sentry: 'Sentry', smoke_of_deceit: 'Смок', dust: 'Dust', gem: 'Gem', ward_dispenser: 'Варды' };
+function teamBlock(p) {
+  const list = Object.entries(p.teamItems);
+  if (!list.length && !p.smokes) return '';
+  return `<div class="sub">Для команды</div><div class="titems">${list.map(([k, n]) => `<span class="chip"><img src="${itemImg(k)}" alt="">${esc(TEAM_RU[k] || C.itemsByKey[k]?.name || k)}${n > 1 ? ` ×${n}` : ''}</span>`).join('')}
+    ${p.smokes ? `<span class="chip">смоков применил: ${p.smokes}</span>` : ''}${p.obsLife != null ? `<span class="chip">обсерверы жили в среднем ${mmss(p.obsLife)}${p.obsKilled ? `, снято врагом ${p.obsKilled}` : ''}</span>` : ''}</div>`;
+}
+
+// Обзор и смоки обеих команд
+function wardsPanel() {
+  const side = (t) => {
+    const ps = A.players.filter((p) => p.team === t);
+    const lives = ps.filter((p) => p.obsLife != null);
+    const life = lives.length ? Math.round(lives.reduce((s, p) => s + p.obsLife * p.obs, 0) / Math.max(1, lives.reduce((s, p) => s + p.obs, 0))) : null;
+    const top = [...ps].sort((a, b) => b.obs - a.obs)[0];
+    return `<div class="wside"><div class="lbl ${t === 'radiant' ? 'rad' : 'dire'}">${teamName(t)}</div>
+      <div class="wnums"><span><b>${ps.reduce((s, p) => s + p.obs, 0)}</b> observer</span><span><b>${ps.reduce((s, p) => s + p.sen, 0)}</b> sentry</span>
+      <span><b>${life != null ? mmss(life) : '-'}</b> живёт обс</span><span><b>${ps.reduce((s, p) => s + p.dewards, 0)}</b> снято чужих</span>
+      <span><b>${ps.reduce((s, p) => s + p.obsKilled, 0)}</b> своих потеряно</span><span><b>${ps.reduce((s, p) => s + p.smokes, 0)}</b> смоков</span></div>
+      ${top?.obs ? `<span class="psub">больше всех обзора: ${esc(top.hero)}</span>` : ''}</div>`;
+  };
+  return A.parsed ? `<div class="panel reveal"><h3>Обзор и смоки <small>варды обеих команд</small></h3><div class="wgrid">${side('radiant')}${side('dire')}</div></div>` : '';
 }
 
 // ---------- линии
@@ -430,7 +493,24 @@ function chart(el) {
       ${ticks.join('')}
     </svg>
     <div class="legend"><span><i style="background:#eceef4"></i>Золото</span><span><i style="background:#8b91a5"></i>Опыт</span><span><i style="background:#ff3b3b"></i>Смерти руинера (${esc(r.hero)})</span><span><i style="background:#3d8bff;opacity:.5"></i>Командные драки</span>${turn?.minute > 1 ? '<span><i style="background:#ffc23d"></i>Перелом</span>' : ''}</div>
-    <p style="color:var(--muted);margin:12px 0 0;font-size:14px">${turnText()}</p></div>`;
+    <p style="color:var(--muted);margin:12px 0 0;font-size:14px">${turnText()}</p></div>${winChance(g, W, P, sx)}`;
+}
+
+// Шанс победы по разнице ценности и времени (оценка, без пика и умений героев): чем позже игра, тем меньше значит та же разница
+function winChance(g, W, P, sx) {
+  if (g.length < 6) return '';
+  const pr = g.map((v, i) => 1 / (1 + Math.exp(-v / (1800 + 260 * i))));
+  const H = 120;
+  const sy = (v) => 10 + (1 - v) * (H - 30);
+  let best = 1;
+  for (let i = 2; i < pr.length; i++) if (Math.abs(pr[i] - pr[i - 2]) > Math.abs(pr[best] - pr[best - 2] || 0)) best = i;
+  const line = pr.map((v, i) => `${i ? 'L' : 'M'}${sx(i).toFixed(1)},${sy(v).toFixed(1)}`).join('');
+  const sw = Math.round((pr[best] - pr[best - 2]) * 100);
+  return `<div class="panel reveal"><h3>Шанс победы <small>оценка по разнице ценности команд и времени</small></h3>
+    <svg class="chart" viewBox="0 0 ${W} ${H}"><line x1="${P}" x2="${W - P}" y1="${sy(0.5)}" y2="${sy(0.5)}" stroke="#262a38" stroke-dasharray="4 4"/>
+    <rect x="${sx(best - 2)}" y="6" width="${sx(best) - sx(best - 2)}" height="${H - 22}" fill="#ffc23d" opacity=".12"/>
+    <path d="${line}" fill="none" stroke="#5fd36f" stroke-width="2.2"/><text x="${P}" y="${sy(1) + 4}" fill="#5fd36f" font-size="11">Свет 100%</text><text x="${P}" y="${sy(0) + 12}" fill="#ff6a3d" font-size="11">Тьма 100%</text></svg>
+    <p class="psub" style="margin:8px 0 0">Сильнее всего шанс сдвинулся на ${best - 2}–${best} минуте: ${Math.abs(sw)}% в пользу ${sw > 0 ? 'Сил Света' : 'Сил Тьмы'}. В конце: Свет ${Math.round(pr[pr.length - 1] * 100)}%.</p></div>`;
 }
 
 function turnText() {
@@ -554,15 +634,25 @@ async function voteBox() {
       <button class="btn sm" data-v="agree">${ic('shield')} Да</button><button class="btn ghost sm" data-v="disagree">Нет</button>`;
     $('[data-v="agree"]', box).onclick = () => send('agree');
     $('[data-v="disagree"]', box).onclick = () => {
-      box.innerHTML = `<span>Кто заруинил на самом деле?</span>${losers.filter((p) => p !== A.ruiner).map((p) => `<button class="chip" data-pick="${p.idx}"><img src="${portrait(p)}" alt="">${esc(p.hero)}</button>`).join('')}
-        <button class="chip" data-pick="">вся команда</button>`;
-      $$('[data-pick]', box).forEach((b) => (b.onclick = () => send('disagree', b.dataset.pick === '' ? null : +b.dataset.pick)));
+      // до трёх виновников по порядку: первый нажатый главный
+      const picks = [];
+      box.innerHTML = `<span>Кто заруинил на самом деле? Можно до трёх, по порядку.</span>${losers.filter((p) => p !== A.ruiner).map((p) => `<button class="chip" data-pick="${p.idx}"><img src="${portrait(p)}" alt="">${esc(p.hero)}</button>`).join('')}
+        <button class="chip" data-pick="">вся команда</button><button class="btn sm" id="vsend" disabled>Отправить</button>`;
+      $$('[data-pick]', box).forEach((b) => (b.onclick = () => {
+        if (b.dataset.pick === '') return send('disagree', []);
+        const i = +b.dataset.pick;
+        const at = picks.indexOf(i);
+        if (at >= 0) picks.splice(at, 1); else if (picks.length < 3) picks.push(i);
+        $$('[data-pick]', box).forEach((x) => { const n = picks.indexOf(+x.dataset.pick); x.classList.toggle('on', n >= 0); x.dataset.n = n >= 0 ? n + 1 : ''; });
+        $('#vsend', box).disabled = !picks.length;
+      }));
+      $('#vsend', box).onclick = () => send('disagree', picks);
     };
   };
   const send = async (vote, pick = null) => {
     box.innerHTML = '<span class="psub">Сохраняем голос…</span>';
     try {
-      const d = await getJSON(`${API}/vote`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match: String(A.id), vote, pick }) });
+      const d = await getJSON(`${API}/vote`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match: String(A.id), vote, picks: Array.isArray(pick) ? pick : pick != null ? [pick] : [] }) });
       store.set(key, vote);
       show(d);
       toast('Спасибо, голос учтён');
@@ -607,9 +697,9 @@ function noms(el) {
     <div class="nom-main">${main.map((n) => `
       <div class="nomx reveal"><div class="nomx-img"><img src="${heroFull(n.p.heroKey)}" onerror="this.src='${heroTall(n.p.heroKey)}'" alt=""></div>
         <div class="nomx-ic">${ic(n.icon)}</div><b>${n.title}</b><div class="v">${n.desc}</div>
-        <div class="nomx-who">${esc(n.p.name)}<span>${esc(n.p.hero)}</span></div><div class="nomx-val">${esc(n.value)}</div></div>`).join('')}</div>
+        <div class="nomx-who">${esc(n.p.name)}<span>${esc(n.p.hero)}</span></div><div class="nomx-val">${esc(n.value)}</div>${n.medal ? `<div class="medal m-${n.medal}">${n.medal}</div>` : ''}</div>`).join('')}</div>
     ${rest.length ? `<div class="lbl nom-more">Остальные номинации</div><div class="nom-rest">${rest.map((n) => `
-      <div class="nomr"><span class="nomr-ic">${ic(n.icon)}</span><div><b>${n.title}</b><span>${esc(n.p.name)} · ${esc(n.value)}</span></div><img src="${portrait(n.p)}" alt=""></div>`).join('')}</div>` : ''}
+      <div class="nomr"><span class="nomr-ic">${ic(n.icon)}</span><div><b>${n.title}</b><span>${esc(n.p.name)} · ${esc(n.value)}${n.medal ? ` · <i class="medal m-${n.medal}">${n.medal}</i>` : ''}</span></div><img src="${portrait(n.p)}" alt=""></div>`).join('')}</div>` : ''}
   </div>`;
 }
 

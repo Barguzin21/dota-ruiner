@@ -1,7 +1,7 @@
 // Проверка на смурфа: опыт аккаунта против уровня игры.
-import { $, esc, fmt, OD, getJSON, consts, heroImg, fx } from './util.js?v=202611030018';
-import { rankName } from './analyze.js?v=202611030018';
-import { icon as ic } from './icons.js?v=202611030018';
+import { $, esc, fmt, OD, getJSON, consts, heroImg, fx } from './util.js?v=202611030043';
+import { rankName } from './analyze.js?v=202611030043';
+import { icon as ic } from './icons.js?v=202611030043';
 
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 
@@ -52,7 +52,7 @@ export async function smurfPage(app, id) {
     played.length ? [0, pool <= 5 && rec.length >= 10, `${pool} разных героев за ${rec.length} игр`, pool <= 5 ? 'узкий пул, как у бустера' : 'разнообразный пул'] : null,
   ].filter(Boolean);
   const score = Math.round(100 * expS * (0.35 + 0.65 * perfS));
-  const verdict = !games ? 'Проверить нельзя' : score >= 55 ? 'Скорее смурф' : score >= 30 ? 'Возможно смурф' : perfS >= 0.55 ? 'Не смурф, просто сильный игрок' : 'Не похож на смурфа';
+  const verdict = !games ? 'Профиль скрыт' : score >= 55 ? 'Скорее смурф' : score >= 30 ? 'Возможно смурф' : perfS >= 0.55 ? 'Не смурф, просто сильный игрок' : 'Не похож на смурфа';
   const bought = tier >= 5 && rec.length >= 10 && pct(rWins, rec.length) < 40 && kda < 2.2;
 
   app.innerHTML = `<div class="smurfpage">

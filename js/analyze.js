@@ -66,6 +66,8 @@ export function analyze(m, consts = {}) {
     sups.sort((a, b) => nw(b) - nw(a)).forEach((p, i) => { p._pos = 4 + i; });
   }
   const heroes = consts.heroes || {};
+  const heroByName = Object.fromEntries(Object.values(heroes).map((h) => [h.name, h.localized_name]));
+  const killerName = (k) => heroByName[k] || (/tower|fort|rax/.test(k || '') ? 'башня' : /roshan/.test(k || '') ? 'Рошан' : 'крипы');
   const itemsById = consts.itemsById || {};
   const dur = m.duration || 1;
   const mins = dur / MIN;
@@ -85,7 +87,7 @@ export function analyze(m, consts = {}) {
   const at10 = (arr) => (arr?.length ? arr[Math.min(10, arr.length - 1)] : null);
   const lostBuildings = { radiant: [], dire: [] }; // когда сторона теряла здание или Рошана
   for (const o of m.objectives || []) {
-    if (o.type === 'building_kill' && /tower|rax|fort/.test(o.key || '')) lostBuildings[o.key.includes('goodguys') ? 'radiant' : 'dire'].push(o.time);
+    if (o.type === 'building_kill' && /tower[2-4]|rax|fort/.test(o.key || '')) lostBuildings[o.key.includes('goodguys') ? 'radiant' : 'dire'].push(o.time);
     if (o.type === 'CHAT_MESSAGE_ROSHAN_KILL') lostBuildings[o.team === 2 ? 'dire' : 'radiant'].push(o.time);
   }
   const bigFights = fights.map((f) => {
@@ -189,6 +191,17 @@ export function analyze(m, consts = {}) {
     const nwRatio = rival ? (p.net_worth || 0) / Math.max(1, rival.net_worth || 0) : 1;
     const richest = !m.players.some((q) => team(q) === t && (q.net_worth || 0) > (p.net_worth || 0));
     const lastLost = [...bigFights].reverse().find((x) => x.won !== t);
+    // для карточки игрока: игра по минутам, смерти с контекстом, варды, вещи для команды
+    const atMin = (arr, mn) => (arr?.length > mn ? arr[mn] : null);
+    const timeline = [10, 20, 40].filter((mn) => mn * 60 <= dur).map((mn) => ({
+      mn, gold: atMin(p.gold_t, mn), lh: atMin(p.lh_t, mn), xp: atMin(p.xp_t, mn),
+      k: (p.kills_log || []).filter((x) => x.time <= mn * 60).length, d: dl.filter((x) => x.time <= mn * 60).length,
+    }));
+    const deathsInfo = dl.map((d) => ({ t: d.time, by: killerName(d.key), solo: df.solo.includes(d), first: firstIn(d), lost: d.gold_lost || 0, fed: d.gold_fed || 0, dead: d.time_dead || 0 }));
+    const leftBy = new Map((p.obs_left_log || []).map((w) => [w.ehandle, w]));
+    const obsLives = (p.obs_log || []).map((w) => leftBy.get(w.ehandle) && { life: leftBy.get(w.ehandle).time - w.time, killed: !!leftBy.get(w.ehandle).attackername && leftBy.get(w.ehandle).time - w.time < 350 }).filter(Boolean);
+    const teamItems = {};
+    for (const x of p.purchase_log || []) if (TEAM_ITEMS.has(x.key)) teamItems[x.key] = (teamItems[x.key] || 0) + 1;
 
     const neg = [];
     const pos = [];
@@ -225,7 +238,12 @@ export function analyze(m, consts = {}) {
     if (sup && parsed && mins > 20 && enemyObs >= mins / 3 && dewards === 0 && sen < 3) add(neg, 8, 'Не снимал варды', `Враги поставили ${enemyObs} обсерверов, а у него ${sen} sentry и ни одного снятого варда.`);
     if (p.actions_per_min && p.actions_per_min < 50 && parsed) add(neg, 15, 'Почти не играл', `APM ${p.actions_per_min}, похоже на AFK или игру «в одну кнопку».`);
     if (toxic >= 2) add(neg, 4 + toxic, 'Токсичность в чате', `${toxic} оскорбительных сообщений.`);
-    if ((p.buyback_count || 0) >= Math.max(2, Math.round(mins / 20)) && !p.win) add(neg, 4, 'Дорогие выкупы', `${p.buyback_count} выкупа, команда всё равно проиграла.`);
+    // выкуп в последние 5 минут проигранной катки не в вину: это попытка спасти игру
+    const bbEarly = (p.buyback_log || []).filter((b) => b.time < dur - 300).length;
+    if (bbEarly >= Math.max(2, Math.round(mins / 20)) && !(t === winner)) add(neg, 4, 'Дорогие выкупы', `${bbEarly} выкупа до финала, команда всё равно проиграла.`);
+    // рапира: купил и к концу её нет, значит отдал врагу
+    const rapier = (p.purchase_log || []).find((x) => x.key === 'rapier');
+    if (rapier && !finalItems.includes('rapier')) add(neg, 14, 'Слил рапиру', `Купил Divine Rapier на ${mmss(rapier.time)}, к концу игры её у него не было.`);
 
     // крайний фид: треть смертей команды почти без размена; это проблема даже у победителей
     const teamDeaths = sum(m.players.filter((q) => team(q) === t).map((q) => q.deaths || 0));
@@ -292,6 +310,9 @@ export function analyze(m, consts = {}) {
       lanePos: p.lane_pos, obsLog: p.obs_log || [], senLog: p.sen_log || [],
       runes: (p.runes_log || []).length, taken: sum(Object.values(p.damage_taken || {})),
       multi: Math.max(0, ...Object.keys(p.multi_kills || {}).map(Number)), streak: Math.max(0, ...Object.keys(p.kill_streaks || {}).map(Number)),
+      timeline, deathsInfo, teamItems, smokes: p.item_uses?.smoke_of_deceit || 0,
+      obsLife: obsLives.length ? Math.round(sum(obsLives.map((x) => x.life)) / obsLives.length) : null, obsKilled: obsLives.filter((x) => x.killed).length,
+      neutrals: p.neutral_kills || 0, couriers: p.courier_kills || 0, runesN: (p.runes_log || []).length,
       rosh: p.roshan_kills || 0, dewards: (p.observer_kills || 0) + (p.sentry_kills || 0), buybacks: p.buyback_count || 0,
     };
   });
@@ -306,12 +327,16 @@ export function analyze(m, consts = {}) {
   share(losers, (p) => (100 - p.score) ** 2);
   share(winners, (p) => p.score ** 2);
   verdicts(players, mins);
+  // место из 10 по золоту, добиваниям и урону
+  for (const [key, f] of [['nwPlace', (p) => p.nw], ['lhPlace', (p) => p.lh], ['dmgPlace', (p) => p.dmg]]) {
+    [...players].sort((a, b) => f(b) - f(a)).forEach((p, i) => (p[key] = i + 1));
+  }
   const stability = verdictStability(losers, m.match_id);
   const confidence = clamp(Math.round(stability * 0.8 + Math.min(20, gap * 1.5)), 40, 99);
 
   return {
     id: m.match_id, duration: dur, winner, parsed, score: kills, startTime: m.start_time,
-    gameMode: m.game_mode, lobby: m.lobby_type, rank: avgRank(players),
+    gameMode: m.game_mode, turbo: m.game_mode === 23, lobby: m.lobby_type, rank: avgRank(players),
     players, ruiner, nearRuiner, confidence, gap, stability, lanes: lanes(players),
     mvp: winners[0], bestLoser: losers[losers.length - 1], passenger: winners[winners.length - 1],
     advantage: { gold: m.radiant_gold_adv || [], xp: m.radiant_xp_adv || [] },
@@ -479,6 +504,11 @@ function episodes(m, players, fights, ruiner) {
   return out.sort((a, b) => a.t - b.t);
 }
 
+// предметы «для команды»: обзор, смоки, ауры и сейвы союзников
+const TEAM_ITEMS = new Set(['ward_observer', 'ward_sentry', 'smoke_of_deceit', 'dust', 'gem', 'mekansm', 'guardian_greaves', 'pipe', 'crimson_guard',
+  'glimmer_cape', 'force_staff', 'lotus_orb', 'solar_crest', 'vladmir', 'spirit_vessel', 'holy_locket', 'arcane_boots', 'boots_of_bearing', 'ward_dispenser']);
+
+// min — порог номинации; медаль по тому, во сколько раз он превышен (как ступени медалей Dota Plus)
 const NOMS = [
   { id: 'feeder', icon: 'coins', title: 'Кормилец', desc: 'больше всех золота врагам', v: (p) => p.fed, f: (v) => `${fmt(v)} золота врагам` },
   { id: 'immortal', icon: 'shield', title: 'Бессмертный', desc: 'меньше всех смертей', v: (p) => -p.d + p.k * 0.01, f: (_, p) => `${p.d} смертей` },
@@ -494,6 +524,12 @@ const NOMS = [
   { id: 'hunter', icon: 'target', title: 'Охотник за вардами', desc: 'больше всех снял вардов', v: (p) => p.dewards, f: (v) => `${v} вардов снято` },
   { id: 'stacker', icon: 'boxes', title: 'Стакер', desc: 'больше всех стаков', v: (p) => p.stacks, f: (v) => `${v} стаков` },
   { id: 'multi', icon: 'zap', title: 'Мульти-килл', desc: 'лучшая серия убийств', v: (p) => p.multi * 100 + p.streak, f: (_, p) => p.multi >= 5 ? 'RAMPAGE' : p.multi === 4 ? 'Ultra kill' : p.multi === 3 ? 'Triple kill' : `серия ${p.streak}` },
+  { id: 'jungler', icon: 'wheat', title: 'Лесник', desc: 'больше всех лесных крипов', min: 80, v: (p) => p.neutrals, f: (v) => `${v} лесных крипов` },
+  { id: 'streak', icon: 'crown', title: 'Серия', desc: 'самая длинная серия убийств', min: 5, v: (p) => p.streak, f: (v) => `серия из ${v} убийств` },
+  { id: 'runes', icon: 'drop', title: 'Диджей рун', desc: 'больше всех рун', min: 8, v: (p) => p.runesN, f: (v) => `${v} рун` },
+  { id: 'roshan', icon: 'skull', title: 'Убийца Рошана', desc: 'добивал Рошана', min: 1, v: (p) => p.rosh, f: (v) => `${v} раз` },
+  { id: 'courier', icon: 'target', title: 'Охотник на курьеров', desc: 'больше всех убил курьеров', min: 1, v: (p) => p.couriers, f: (v) => `${v} курьеров` },
+  { id: 'smoker', icon: 'ghost', title: 'Дымовых дел мастер', desc: 'больше всех смоков', min: 3, v: (p) => p.smokes, f: (v) => `${v} смоков` },
   { id: 'toxic', icon: 'biohazard', title: 'Токсик матча', desc: 'больше всех ругался', v: (p) => p.toxic, f: (v) => `${v} грубых сообщений` },
 ];
 
@@ -510,7 +546,14 @@ function nominations(players, mins) {
     if (n.id === 'feeder' && best.fed < 1500) continue;
     if (n.id === 'ghost' && best.deadShare < 0.12) continue;
     if (n.id === 'tourist' && mins < 15) continue;
-    out.push({ ...n, p: best, value: n.f(n.v(best), best) });
+    if (n.min && v < n.min) continue;
+    // одному игроку не больше двух номинаций: третью отдаём следующему по силе
+    const got = (p) => out.filter((x) => x.p === p).length;
+    const who = got(best) < 2 ? best : [...players].sort((a, b) => n.v(b) - n.v(a)).find((p) => got(p) < 2 && n.v(p) > 0 && (!n.min || n.v(p) >= n.min));
+    if (!who) continue;
+    const ratio = n.min ? n.v(who) / n.min : 0;
+    const medal = !n.min ? null : ratio >= 4 ? 'Грандмастер' : ratio >= 3 ? 'Платина' : ratio >= 2 ? 'Золото' : ratio >= 1.5 ? 'Серебро' : 'Бронза';
+    out.push({ ...n, p: who, medal, value: n.f(n.v(who), who) });
   }
   return out;
 }
