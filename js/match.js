@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611030050';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202611030050';
-import { coachSection, me, itemTimings, TIPS } from './coach.js?v=202611030050';
-import { icon as ic } from './icons.js?v=202611030050';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611030055';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202611030055';
+import { coachSection, me, itemTimings, TIPS } from './coach.js?v=202611030055';
+import { icon as ic } from './icons.js?v=202611030055';
 
 let A; // текущий разбор
 let C; // справочники
@@ -95,7 +95,7 @@ function draw(app) {
     <section class="verdict">
       <div class="vcard tilt reveal"><div class="gyro" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="vstage" data-hero3d="${r.heroKey}" data-tone="red"><img class="portrait full" src="${heroFull(r.heroKey)}" onerror="this.onerror=null;this.src='${portrait(r, 1)}';this.classList.remove('full')" alt="${esc(r.hero)}">
-          <div class="viewsw" role="group" aria-label="Вид героя"><button data-view="3d">3D</button><button data-view="2d">2D</button></div></div>
+          <div class="viewsw" role="group" aria-label="Вид героя"><button data-view="3d">3D</button><button data-view="2d">2D</button></div><button class="fitsw" title="Сменить раскладку героя">⤢</button></div>
         <div class="vbody">
           <div class="vlabel glitch" data-text="ЗАРУИНИЛ">ЗАРУИНИЛ</div>
           <div class="vname">${esc(r.name)}</div>
@@ -199,10 +199,18 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202611030050').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202611030055').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
+  };
+  // незаметный переключатель двух раскладок героя руинера: во весь рост или по центру
+  const fitBtn = $('.fitsw', root);
+  document.body.classList.toggle('fit-center', store.get('fit', 'big') === 'center');
+  if (fitBtn) fitBtn.onclick = () => {
+    const c = document.body.classList.toggle('fit-center');
+    store.set('fit', c ? 'center' : 'big');
+    viewers.forEach((v) => v?.refit?.());
   };
   $$('.viewsw button', root).forEach((b) => (b.onclick = () => { store.set('view3', b.dataset.view); if (!paint()) start(); }));
   if (!paint()) start();

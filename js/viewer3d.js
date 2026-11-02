@@ -97,7 +97,17 @@ export function createViewer(el, manifest, opt = {}) {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   };
-  const ro = new ResizeObserver(resize);
+  // окно меняет размер уже после загрузки (телефон, перестройка вёрстки): пересчитываем и кадр, иначе голова срезана, а снизу пусто
+  let refit = 0;
+  let lastSize = '';
+  const ro = new ResizeObserver(() => {
+    resize();
+    const size = `${el.clientWidth}x${el.clientHeight}`;
+    if (!hero || size === lastSize) return;
+    lastSize = size;
+    clearTimeout(refit);
+    refit = setTimeout(() => { if (alive) frame(); }, 150);
+  });
   ro.observe(el);
 
   let paused = false;
@@ -124,6 +134,7 @@ export function createViewer(el, manifest, opt = {}) {
     // Стандартные части героя, вынесенные в отдельные модели, рисуются предметами, тело оставляем.
     await sync();
     frame();
+    lastSize = `${el.clientWidth}x${el.clientHeight}`;
   })();
 
   // Кадр считаем после надевания предметов и по позе из анимации: у Juggernaut и других тело маленькое,
@@ -195,9 +206,11 @@ export function createViewer(el, manifest, opt = {}) {
       if (high <= low) break;
       const t = controls.target;
       // в маленьком окне герой по центру; в высоком окне руинера стоит ногами внизу (у штампа) и занимает почти всю высоту
-      const span = small ? 2 / margin : 1.72;
-      const want = small ? 0 : 0.06; // где должен оказаться центр героя по высоте (-1 низ, 1 верх)
-      const next = Math.max(d * (high - low) / span, d * wide * wideMargin, d * 0.3);
+      // вторая раскладка (кнопка в углу окна руинера): герой поменьше по центру, штамп под ним
+      const centered = !small && document.body.classList.contains('fit-center');
+      const span = centered ? 1.3 : small ? 2 / margin : 1.72;
+      const want = small || centered ? 0 : 0.06; // где должен оказаться центр героя по высоте (-1 низ, 1 верх)
+      const next = Math.max(d * (high - low) / span, d * wide * (centered ? 1.25 : wideMargin), d * 0.3);
       t.y += ((high + low) / 2 * d - want * next) * halfTan;
       camera.position.set(t.x, t.y, t.z + next);
       camera.lookAt(t);
@@ -261,6 +274,7 @@ export function createViewer(el, manifest, opt = {}) {
 
   return {
     ready,
+    refit() { if (hero) frame(); },
     async wear(ids) {
       want = ids.map(String);
       await sync();

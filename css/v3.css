@@ -521,3 +521,6 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 @media (max-width: 700px) { .psum, .wgrid { grid-template-columns: 1fr; } }
 /* штамп ложится на ноги героя, а не висит отдельно внизу */
 .vcard:not(.mvp) .vstage::after { bottom: 22% !important; }
+.fitsw { position: absolute; left: 10px; top: 10px; z-index: 4; width: 24px; height: 24px; border: 0; border-radius: 7px; background: rgba(8, 9, 13, .5); color: var(--muted); font-size: 13px; cursor: pointer; opacity: .35; transition: opacity .2s; }
+.fitsw:hover { opacity: 1; }
+.fit-center .vcard:not(.mvp) .vstage::after { bottom: 18px !important; }
