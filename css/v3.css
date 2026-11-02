@@ -519,3 +519,5 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 .vote .chip.on { border-color: var(--red); background: rgba(255, 59, 59, .14); }
 .vote .chip.on::after { content: attr(data-n); margin-left: 6px; font-weight: 800; color: var(--red); }
 @media (max-width: 700px) { .psum, .wgrid { grid-template-columns: 1fr; } }
+/* штамп ложится на ноги героя, а не висит отдельно внизу */
+.vcard:not(.mvp) .vstage::after { bottom: 22% !important; }
