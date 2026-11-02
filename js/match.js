@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611020236';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202611020236';
-import { coachSection, me, itemTimings } from './coach.js?v=202611020236';
-import { icon as ic } from './icons.js?v=202611020236';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611030018';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202611030018';
+import { coachSection, me, itemTimings } from './coach.js?v=202611030018';
+import { icon as ic } from './icons.js?v=202611030018';
 
 let A; // текущий разбор
 let C; // справочники
@@ -198,7 +198,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202611020236').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202611030018').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -232,7 +232,7 @@ function action(act) {
     box.innerHTML = `<div class="panel reveal"><h3>Почему именно он?</h3>
       <p id="whyai" class="whyai"><span class="psub">Смотрим катку глазами сильного игрока…</span></p>
       <details class="whyhow"><summary>Как считается</summary><p style="color:var(--muted)">Каждого игрока модель сравнивает с другими на том же герое (перцентили OpenDota) и с ожиданиями его роли. Считаются 10–11 метрик: фарм, урон, смерти и их цена, дисциплина (смерти без команды, перед потерей зданий, при большом перевесе), командные драки, линия к 10:00, обзор, давление на здания. Руинер, игрок проигравшей команды с самым низким итогом. Устойчивость ${A.stability}% означает, что при 400 случайных вариантах весов он остаётся руинером в ${A.stability}% случаев. Плюс поправка за реальную долю в уроне и убийствах команды.</p></details>
-      <div class="whygrid">${losers.map((p) => `<div class="sc"><span class="pname">${esc(p.hero)}</span>${scoreBar(p.score)}<span class="num">${p.score}</span><span class="chip ${p === r ? 'neg' : ''}">руин ${p.share}%</span></div>`).join('')}</div>
+      <div class="whygrid">${losers.map((p) => `<div class="sc"><span class="pname">${esc(p.hero)} <span class="tag v ${VCLS[p.label] || ''}">${p.label}</span></span>${scoreBar(p.score)}<span class="num">${p.score}</span><span class="chip ${p === r ? 'neg' : ''}">руин ${p.share}%</span></div>`).join('')}</div>
       <div class="sub">Из чего сложился счёт ${esc(r.hero)}</div>${breakdown(r)}
       <div class="sub">Все сигналы против ${esc(r.hero)}</div>
       <div class="reasons">${r.neg.map((x) => `<div class="reason"><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('')}</div></div>`;
@@ -302,12 +302,15 @@ function players(el) {
   }));
 }
 
+const VCLS = { 'Слил?': 'bad', 'Под вопросом': 'warn', 'Не вытащил': 'gold', 'Тащил': 'good', 'Был в сторонке': 'warn' };
+
 function prow(p) {
   const cls = p === A.ruiner ? 'ruiner' : p === A.mvp ? 'mvp' : '';
-  const tag = (p === A.ruiner ? '<span class="tag r">РУИНЕР</span>' : p === A.mvp ? '<span class="tag m">MVP</span>' : '') + (me() && p.accountId === me() ? '<span class="tag you">ТЫ</span>' : '');
+  const tag = (p === A.ruiner ? '<span class="tag r">РУИНЕР</span>' : p === A.mvp ? '<span class="tag m">MVP</span>' : '')
+    + (p.label ? `<span class="tag v ${VCLS[p.label] || ''}" title="Вердикт игроку, место ${p.place} из 5 по вкладу в команде">${p.label}</span>` : '') + (me() && p.accountId === me() ? '<span class="tag you">ТЫ</span>' : '');
   return `<div class="prow ${cls}" data-i="${p.idx}">
     <img class="h" src="${portrait(p)}" alt="">
-    <div style="min-width:0"><div class="pname">${esc(p.name)}${tag}</div><div class="psub">${esc(p.hero)} · поз. ${p.role}</div></div>
+    <div style="min-width:0"><div class="pname">${esc(p.name)}${tag}</div><div class="psub">${esc(p.hero)} · поз. ${p.role} · ${p.place}-й в команде</div></div>
     <div class="num">${p.k}/${p.d}/${p.a}</div>
     <div class="num hide-m hide-s">${p.gpm}</div>
     <div class="num hide-m hide-s">${Math.round(p.kp * 100)}%</div>

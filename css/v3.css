@@ -487,3 +487,9 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
   .reasons .reason span { font-size: 13px; line-height: 1.35; }
   .vside > :not(.mvps) .psub { font-size: 12px; line-height: 1.25; }
 }
+/* вердикты каждому игроку */
+.tag.v { background: rgba(255, 255, 255, .08); color: var(--muted); font-weight: 700; }
+.tag.v.bad { background: rgba(255, 59, 59, .18); color: #ff7a7a; }
+.tag.v.warn { background: rgba(255, 178, 61, .16); color: #ffc46b; }
+.tag.v.gold { background: rgba(143, 184, 255, .16); color: #a9c7ff; }
+.tag.v.good { background: rgba(79, 210, 122, .16); color: #6fe39a; }

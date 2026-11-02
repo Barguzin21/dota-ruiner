@@ -25,7 +25,7 @@ const SELF_SAVE = new Set(['life_stealer', 'juggernaut', 'omniknight', 'slark', 
   'clinkz', 'riki', 'phantom_lancer', 'monkey_king', 'earth_spirit', 'marci', 'hoodwink', 'sand_king', 'meepo', 'troll_warlord', 'huskar', 'oracle', 'dazzle', 'kez', 'muerta', 'medusa', 'spectre', 'brewmaster']);
 const TOXIC = /(fuck|noob|нуб|даун|дебил|идиот|урод|сын\s*шлю|мать|мамк|ебан|еба|хуй|хуе|пидор|пидр|сука|бля|гандон|retard|idiot|stupid|uninstall|report|репорт|рак\b|раки\b|тупой|тупая|feed|фидер|kys|ez\b|изи\b)/i;
 
-const DEATH = new Set(['Слишком много смертей', 'Накормил врагов', 'Умирал в одиночку', 'Смерти стоили зданий', 'Слил преимущество', 'Первым падал в драках', 'Умирал с деньгами']);
+const DEATH = new Set(['Крайний фид', 'Ключевая смерть', 'Слишком много смертей', 'Накормил врагов', 'Умирал в одиночку', 'Смерти стоили зданий', 'Слил преимущество', 'Первым падал в драках', 'Умирал с деньгами']);
 // Позиция: из OpenDota, а в неразобранном матче её нет, тогда по месту в команде по ценности (1 самый богатый, 5 самый бедный).
 const role = (p) => p.position_est || p._pos || 3;
 const isSupport = (p) => role(p) >= 4;
@@ -202,16 +202,17 @@ export function analyze(m, consts = {}) {
     if (!sup && m01.farm < 0.25) add(neg, 30 * (0.3 - m01.farm) * 4, 'Фарм ниже ожидания', `GPM ${p.gold_per_min}, хуже, чем у ${Math.round((1 - m01.farm) * 100)}% игроков на этом герое.`);
     const manyDeaths = p.deaths >= Math.max(sup ? 10 : 8, mins * (sup ? 0.26 : 0.2));
     if (manyDeaths || (m01.deaths < 0.15 && p.deaths >= 6)) add(neg, 8 + p.deaths * (sup ? 1.5 : 2), 'Слишком много смертей', `${p.deaths} смертей, мёртвым ${Math.round(deadShare * 100)}% игры.`);
-    if (fed > Math.max(3500, mins * 130)) add(neg, fed / 300, 'Накормил врагов', `Враги получили ${fmt(fed)} золота за его смерти, сам потерял ${fmt(lost)}.`);
+    if (fed > Math.max(3500, mins * 130) && p.deaths > p.kills + p.assists) add(neg, fed / 300, 'Накормил врагов', `Враги получили ${fmt(fed)} золота за его смерти, сам потерял ${fmt(lost)}.`);
     if (df.solo.length >= 3 && df.solo.length >= p.deaths * 0.4) add(neg, df.solo.length * 4, 'Умирал в одиночку', `${df.solo.length} смертей вне командных драк, пойман без команды.`);
-    if (kills[t] >= 10 && kp < 0.35) add(neg, (0.4 - kp) * 60, 'Не участвовал в драках', `KP ${Math.round(kp * 100)}%, команда дралась без него.`);
+    const farmingCarry = role(p) === 1 && m01.farm >= 0.6;
+    if (kills[t] >= 10 && kp < 0.35 && !farmingCarry) add(neg, (0.4 - kp) * 60, 'Не участвовал в драках', `KP ${Math.round(kp * 100)}%, команда дралась без него.`);
     if (!sup && mins > 30 && !SELF_SAVE.has(heroKey) && ![...allItems].some((k) => SAVE_ITEMS.includes(k))) add(neg, 10, 'Нет сейв-предметов', 'К поздней игре нет BKB, Aeon Disk, Linken или мобильности, лёгкая цель для контроля.');
     if (!sup && laneDiff != null && laneDiff < -1200) add(neg, 8 + Math.min(14, -laneDiff / 250), 'Проиграл линию', `−${fmt(-laneDiff)} золота к 10:00 против ${laneOpp}${p.lane_efficiency_pct != null ? `, эффективность линии ${p.lane_efficiency_pct}%` : ''}.`);
     else if (!sup && role(p) <= 2 && (p.lane_efficiency_pct ?? 100) < 45) add(neg, 12, 'Проиграл линию', `Эффективность на линии ${p.lane_efficiency_pct}% к 10-й минуте.`);
     if (objDeaths >= 3 && objDeaths >= p.deaths * 0.4) add(neg, 6 + objDeaths * 4, 'Смерти стоили зданий', `${objDeaths} раз после его смерти враги сразу забирали вышку, казармы или Рошана.`);
     if (throwDeaths >= 1) add(neg, 10 + throwDeaths * 6, 'Слил преимущество', `${throwDeaths} смерт${throwDeaths === 1 ? 'ь' : 'и'} при перевесе 5k+ золота, после которых команда потеряла 4k+.`);
     if (firstLost >= 2) add(neg, 5 + firstLost * 4, 'Первым падал в драках', `В ${firstLost} проигранных драках умер первым, команда дралась вчетвером.`);
-    if (!sup && missedLost >= 3) add(neg, 4 + missedLost * 3, 'Пропускал драки', `Не было в ${missedLost} из ${bigFights.filter((x) => x.won !== t).length} проигранных командных драк.`);
+    if (!sup && !farmingCarry && missedLost >= 3) add(neg, 4 + missedLost * 3, 'Пропускал драки', `Не было в ${missedLost} из ${bigFights.filter((x) => x.won !== t).length} проигранных командных драк.`);
     if (!sup && mins > 20 && p.deaths >= 3 && avgLost > 350) add(neg, 6, 'Умирал с деньгами', `Терял в среднем ${fmt(avgLost)} золота за смерть, деньги лучше тратить до выхода на карту.`);
     if (!sup && mins > 25 && (p.tower_damage || 0) < 500) add(neg, 8, 'Не давил строения', `${fmt(p.tower_damage || 0)} урона по строениям за ${Math.round(mins)} минут.`);
     if (sup && obs < mins / (role(p) === 5 ? 6 : 10) && teamVision[t] < mins * 0.45 && parsed) add(neg, 12, 'Мало обзора', `${obs} observer и ${sen} sentry за ${Math.round(mins)} минут.`);
@@ -226,6 +227,16 @@ export function analyze(m, consts = {}) {
     if (toxic >= 2) add(neg, 4 + toxic, 'Токсичность в чате', `${toxic} оскорбительных сообщений.`);
     if ((p.buyback_count || 0) >= Math.max(2, Math.round(mins / 20)) && !p.win) add(neg, 4, 'Дорогие выкупы', `${p.buyback_count} выкупа, команда всё равно проиграла.`);
 
+    // крайний фид: треть смертей команды почти без размена; это проблема даже у победителей
+    const teamDeaths = sum(m.players.filter((q) => team(q) === t).map((q) => q.deaths || 0));
+    if (p.deaths >= 8 && p.deaths >= teamDeaths / 3 && p.kills + p.assists < p.deaths) add(neg, 16, 'Крайний фид', `${p.deaths} из ${teamDeaths} смертей команды, а убийств с помощью всего ${p.kills + p.assists}.`);
+    // ключевая смерть: самый богатый в команде умер, и за две минуты соперник отыграл 3k+ золота или строение
+    const keyDeath = richest && !sup && dl.find((d) => {
+      const i = Math.floor(d.time / 60);
+      const swing = adv[i] != null && adv[i + 2] != null ? (adv[i] - adv[i + 2]) * sign : 0;
+      return swing >= 3000 || lostBuildings[t].some((bt) => bt >= d.time && bt <= d.time + 90);
+    });
+    if (keyDeath) add(neg, 10, 'Ключевая смерть', `Самый богатый в команде погиб на ${mmss(keyDeath.time)}, и соперник сразу отыграл золото или строение.`);
     if (!sup && mins > 20 && nwShare > 0.24 && conv < 0.7) add(neg, 13, 'Золото не стало уроном', `${Math.round(nwShare * 100)}% золота команды, но только ${Math.round(dmgShare * 100)}% её урона.`);
     if (!sup && !(t === winner) && lateGpm != null && lateGpm < p.gold_per_min * 0.75) add(neg, 11, 'Исчез в концовке', `За последние 10 минут ${Math.round(lateGpm)} золота в минуту при среднем ${p.gold_per_min}.`);
     if (!(t === winner) && richest && !sup && kp < 0.45 && mins > 20) add(neg, 12, 'Самый дорогой, но вне игры', `Самый богатый в команде, а участвовал только в ${Math.round(kp * 100)}% убийств.`);
@@ -294,6 +305,7 @@ export function analyze(m, consts = {}) {
   const share = (arr, f) => { const tot = sum(arr.map(f)) || 1; arr.forEach((p) => (p.share = Math.round(f(p) / tot * 100))); };
   share(losers, (p) => (100 - p.score) ** 2);
   share(winners, (p) => p.score ** 2);
+  verdicts(players, mins);
   const stability = verdictStability(losers, m.match_id);
   const confidence = clamp(Math.round(stability * 0.8 + Math.min(20, gap * 1.5)), 40, 99);
 
@@ -311,6 +323,37 @@ export function analyze(m, consts = {}) {
     chat: (m.chat || []).filter((c) => c.type === 'chat').map((c) => ({ time: c.time, text: c.key, p: players.find((p) => p.slot === c.player_slot), toxic: TOXIC.test(c.key) })),
     teamNw, teamDmg,
   };
+}
+
+// Вердикт каждому из десяти, а не только одному руинеру (идея RUINER от BattlePass).
+// «Подтверждённая проблема» = заметный минус (вес 8+). «Слил?» только при двух таких проблемах и низком вкладе,
+// «Под вопросом» при одной проблеме, если вклад низкий или на 5+ ниже среднего у союзников.
+// «Не вытащил» — проигравший кор, который тащил (вклад 75+); саппортам не даём, у них он почти всегда мимо.
+export function verdicts(players, mins) {
+  for (const t of ['radiant', 'dire']) {
+    const side = players.filter((p) => p.team === t).sort((a, b) => b.score - a.score);
+    const mean = sum(side.map((p) => p.score)) / side.length;
+    side.forEach((p, i) => {
+      p.place = i + 1;
+      const serious = p.neg.filter((n) => n.weight >= 8).length;
+      const below = p.score <= mean - 5;
+      if (p.win) {
+        p.label = p.score >= (p.support ? 82 : 75) && !serious ? 'Тащил'
+          : serious >= 2 && p.score < mean ? 'Под вопросом'
+          : mins > 20 && p.kp < 0.3 ? 'Был в сторонке' : 'Норм';
+      } else {
+        p.label = !p.support && p.score >= 75 ? 'Не вытащил'
+          : serious >= 2 && p.score <= 45 ? 'Слил?'
+          : serious >= 1 && (p.score <= 40 || below) ? 'Под вопросом' : 'Норм';
+      }
+    });
+    // «Слил?» не больше двух в команде, второй только если вклад почти как у первого (до 4 баллов)
+    const slil = side.filter((p) => p.label === 'Слил?').reverse();
+    slil.slice(1).forEach((p, i) => { if (i > 0 || p.score - slil[0].score > 4) p.label = 'Под вопросом'; });
+  }
+  // руинера сайт называет всегда: если по правилам он «Норм», это хотя бы «Под вопросом»
+  const ruiner = players.filter((p) => !p.win).sort((a, b) => a.score - b.score)[0];
+  if (ruiner && ruiner.label === 'Норм') ruiner.label = 'Под вопросом';
 }
 
 const avg = (a) => { const v = a.filter((x) => x != null); return v.length ? sum(v) / v.length : null; };
