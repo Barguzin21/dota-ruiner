@@ -521,4 +521,3 @@ svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; flex: none; }
 @media (max-width: 700px) { .psum, .wgrid { grid-template-columns: 1fr; } }
 /* штамп чуть выше нижнего края: ноги героя остаются под ним */
 .vcard:not(.mvp) .vstage::after { bottom: 36px !important; }
-.vcard:not(.mvp) .vstage::after { bottom: 70px !important; }
