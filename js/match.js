@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611031557';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202611031557';
-import { coachSection, me, itemTimings, TIPS } from './coach.js?v=202611031557';
-import { icon as ic } from './icons.js?v=202611031557';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611031601';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202611031601';
+import { coachSection, me, itemTimings, TIPS } from './coach.js?v=202611031601';
+import { icon as ic } from './icons.js?v=202611031601';
 
 let A; // текущий разбор
 let C; // справочники
@@ -199,7 +199,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202611031557').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202611031601').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -921,15 +921,15 @@ async function drawCard() {
   for (let i = 0; i < S; i += 54) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, S); x.moveTo(0, i); x.lineTo(S, i); x.stroke(); }
 
   let stampX = 808;
+  let stampY = 960;
   if (hero) {
-    // герой целиком в правой зоне 500x650 по центру. Узкий и высокий встаёт выше, правее конца заголовка.
-    let k = Math.min(520 / hero.width, 780 / hero.height);
-    let cx = 808;
-    const tall = Math.min(330 / hero.width, 880 / hero.height);
-    if (tall > k * 1.05) { k = tall; cx = 900; }
+    // герой справа от текста (с 566 px), ногами к низу; широкие (Брудмать, Пудж) могут уйти за правый край, зато не мелкие
+    const k = Math.min(640 / hero.width, 800 / hero.height);
     const w = hero.width * k;
     const h = hero.height * k;
-    stampX = cx;
+    const cx = Math.max(808, 566 + w / 2);
+    stampX = Math.min(cx, 900);
+    stampY = h < 420 ? 1050 - h - 50 : 960; // плоский герой: штамп над ним, иначе закроет
     x.save();
     x.shadowColor = 'rgba(0,0,0,.7)';
     x.shadowBlur = 40;
@@ -1021,7 +1021,7 @@ async function drawCard() {
 
   // штамп у героя
   x.save();
-  x.translate(stampX, 960); // штамп на ногах героя
+  x.translate(stampX, stampY); // штамп на ногах героя
   x.rotate(-0.12);
   x.font = `900 28px ${D}`;
   const sw = x.measureText('РУИНЕР НАЙДЕН').width + 56; // рамка по ширине надписи
