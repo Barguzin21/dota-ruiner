@@ -206,11 +206,10 @@ export function createViewer(el, manifest, opt = {}) {
       if (high <= low) break;
       const t = controls.target;
       // в маленьком окне герой по центру; в высоком окне руинера стоит ногами внизу (у штампа) и занимает почти всю высоту
-      // вторая раскладка (кнопка в углу окна руинера): герой поменьше по центру, штамп под ним
-      const centered = !small && document.body.classList.contains('fit-center');
-      const span = centered ? 1.3 : small ? 2 / margin : 1.72;
-      const want = small || centered ? 0 : 0.06; // где должен оказаться центр героя по высоте (-1 низ, 1 верх)
-      const next = Math.max(d * (high - low) / span, d * wide * (centered ? 1.25 : wideMargin), d * 0.3);
+      // окно руинера: герой от самого верха почти до низа (−0.96…0.92), штамп ложится под ноги
+      const span = small ? 2 / margin : 1.88;
+      const want = small ? 0 : -0.02; // где должен оказаться центр героя по высоте (-1 низ, 1 верх)
+      const next = Math.max(d * (high - low) / span, d * wide * wideMargin, d * 0.3);
       t.y += ((high + low) / 2 * d - want * next) * halfTan;
       camera.position.set(t.x, t.y, t.z + next);
       camera.lookAt(t);
