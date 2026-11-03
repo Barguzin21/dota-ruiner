@@ -1,8 +1,8 @@
 // Страница матча: вердикт, вкладки, карта, график, ИИ, карточка «Поделиться».
-import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611031548';
-import { analyze, defend, mmss, rankName } from './analyze.js?v=202611031548';
-import { coachSection, me, itemTimings, TIPS } from './coach.js?v=202611031548';
-import { icon as ic } from './icons.js?v=202611031548';
+import { $, $$, esc, fmt, OD, getJSON, consts, heroImg, heroTall, heroFull, itemImg, store, toast, md, askAI, fx, API } from './util.js?v=202611031553';
+import { analyze, defend, mmss, rankName } from './analyze.js?v=202611031553';
+import { coachSection, me, itemTimings, TIPS } from './coach.js?v=202611031553';
+import { icon as ic } from './icons.js?v=202611031553';
 
 let A; // текущий разбор
 let C; // справочники
@@ -199,7 +199,7 @@ async function mount3d(root) {
   const start = async () => {
     if (started) return;
     started = true;
-    const v3 = await import('./viewer3d.js?v=202611031548').catch(() => null);
+    const v3 = await import('./viewer3d.js?v=202611031553').catch(() => null);
     if (!v3) return;
     await Promise.all($$('[data-hero3d]', root).map(async (el) => { viewers.push(await v3.showcase(el, el.dataset.hero3d, el.dataset.tone)); }));
     paint(); // герой мог догрузиться уже после переключения в 2D
@@ -920,6 +920,7 @@ async function drawCard() {
   x.strokeStyle = 'rgba(255,255,255,.035)';
   for (let i = 0; i < S; i += 54) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, S); x.moveTo(0, i); x.lineTo(S, i); x.stroke(); }
 
+  let stampX = 808;
   if (hero) {
     // герой целиком в правой зоне 500x650 по центру. Узкий и высокий встаёт выше, правее конца заголовка.
     let k = Math.min(500 / hero.width, 650 / hero.height);
@@ -928,6 +929,7 @@ async function drawCard() {
     if (tall > k * 1.05) { k = tall; cx = 900; }
     const w = hero.width * k;
     const h = hero.height * k;
+    stampX = cx;
     x.save();
     x.shadowColor = 'rgba(0,0,0,.7)';
     x.shadowBlur = 40;
@@ -1019,7 +1021,7 @@ async function drawCard() {
 
   // штамп у героя
   x.save();
-  x.translate(808, 1008);
+  x.translate(stampX, 922); // штамп на ногах героя
   x.rotate(-0.12);
   x.font = `900 28px ${D}`;
   const sw = x.measureText('РУИНЕР НАЙДЕН').width + 56; // рамка по ширине надписи
